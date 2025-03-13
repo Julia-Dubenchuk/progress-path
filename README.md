@@ -1,50 +1,134 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Progress Path
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Progress Path is a personal tracker and planner application built with NestJS and Node.js. It empowers users to monitor their progress, mood, goals, and learning journeys. With flexible content management, role-based access control, and premium subscription features, Progress Path offers a holistic approach to personal development.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Table of Contents
 
-## Description
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Installation](#installation)
+- [Environment Variables](#environment-variables)
+- [Usage](#usage)
+- [Testing](#testing)
+- [API Documentation](#api-documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+- **User Registration & Authentication**
+  - Traditional sign-up using email/password.
+  - Social login via Google with Auth0.
+  - JWT-based authentication and session management.
+- **Role-Based Access Control (RBAC)**
+  - Flexible role management with support for multiple roles per user.
+  - Fine-grained access control with permissions.
+- **Content Management**
+  - Create and manage lists of items (e.g., movies, books, articles, TV shows).
+  - Prioritize items and track status (e.g., planned, in progress, completed).
+- **Mood Tracking**
+  - Record daily mood entries with a date field.
+  - View mood trends over time with calendar integration.
+- **Goal Setting & Tracking**
+  - Set big goals and break them into smaller, actionable steps.
+  - Visualize progress with progress bars.
+- **Learning & Skill Tracking**
+  - Monitor learning progress and skill improvement.
+  - Visualize progress through charts and graphs.
+- **Premium Features**
+  - Differentiate between simple and premium users.
+  - Manage subscriptions for access to advanced features.
 
-```bash
-$ npm install
-```
+## Tech Stack
 
-## Compile and run the project
+- **Backend:** [NestJS](https://nestjs.com/)
+- **Language:** TypeScript
+- **Database:** PostgreSQL with TypeORM
+- **Authentication:** Auth0 (Google Login)
+- **ORM:** TypeORM
+- **Testing:** Jest
+- **Documentation:** Swagger
+- **Dev Tools:** ESLint, Prettier, Husky
 
-```bash
-# development
-$ npm run start
+## Installation
 
-# watch mode
-$ npm run start:dev
+### Prerequisites
 
-# production mode
-$ npm run start:prod
-```
+- Node.js (>=14.x)
+- npm (>=6.x)
+- PostgreSQL (Ensure you have a running instance)
 
-## Run tests
+### Steps
+
+1. **Clone the Repository:**
+
+   ```bash
+   git clone https://github.com/yourusername/progress-path.git
+   cd progress-path
+
+   ```
+
+2. **Install Dependencies:**
+
+   ```bash
+   npm install
+
+   ```
+
+3. **Configure Environment Variables: Create a .env file in the root directory and add:**
+
+   ```bash
+   PORT=3000
+   DATABASE_URL=postgres://username:password@localhost:5432/progress_path_db
+   JWT_SECRET=your_jwt_secret
+   AUTH0_DOMAIN=your-auth0-domain.auth0.com
+   AUTH0_CLIENT_ID=your_auth0_client_id
+   AUTH0_CLIENT_SECRET=your_auth0_client_secret
+   AUTH0_CALLBACK_URL=http://localhost:3000/auth/auth0/callback
+
+   ```
+
+4. **Run Database Migrations:**
+
+   ```bash
+   npm run typeorm migration:run
+
+   ```
+
+5. **Start the Application:**
+   ```bash
+   npm run start:dev
+   ```
+
+The server will run on http://localhost:3000.
+
+## Environment Variables
+
+Ensure your `.env` file includes:
+
+- **PORT**: Server port.
+- **DATABASE_URL**: PostgreSQL connection string.
+- **JWT_SECRET**: Secret key for JWT authentication.
+- **AUTH0_DOMAIN**, **AUTH0_CLIENT_ID**, **AUTH0_CLIENT_SECRET**, **AUTH0_CALLBACK_URL**: For Auth0 configuration to enable Google login.
+
+## Usage
+
+### Authentication
+
+Use the `/auth` endpoints for user registration, login, and Auth0-based Google social login.
+
+### Content Management
+
+Manage lists and items via the provided API endpoints.
+
+### Mood & Goal Tracking
+
+Record mood entries and set goals, with endpoints for creating, updating, and viewing progress.
+
+## Testing
+
+To run tests:
 
 ```bash
 # unit tests
@@ -57,42 +141,51 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Deployment
+Tests are built using Jest and can be found within the src directory.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## API Documentation
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Swagger documentation is integrated. After starting the server, access it at:
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+http://localhost:3000/api
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Contributing
 
-## Resources
+Contributions are welcome! Follow these steps:
 
-Check out a few resources that may come in handy when working with NestJS:
+1. **Fork the repository.**
+2. **Create a feature branch:**
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+   ```bash
+   git checkout -b feature/your-feature
 
-## Support
+   ```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+3. **Commit your changes:**
 
-## Stay in touch
+   ```bash
+   git commit -m 'Add some feature'
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+   ```
+
+4. **Push to the branch:**
+
+   ```bash
+   git push origin feature/your-feature
+
+   ```
+
+5. **Open a Pull Request.**
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is licensed under the [MIT License](LICENSE).
+
+## Contact
+
+For questions or feedback, please contact:
+
+- **Yulia Dubenchuk:** dubenchuk6@gmail.com
+- **GitHub:** Julia-Dubenchuk
