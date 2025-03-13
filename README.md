@@ -64,7 +64,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 1. **Clone the Repository:**
 
    ```bash
-   git clone https://github.com/yourusername/progress-path.git
+   git clone https://github.com/Julia-Dubenchuk/progress-path.git
    cd progress-path
 
    ```
