@@ -1,6 +1,12 @@
 import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 
+export enum Gender {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
+}
+
 @Entity('user_profiles')
 export class UserProfile {
   @PrimaryColumn('uuid')
@@ -20,8 +26,12 @@ export class UserProfile {
   @Column({ type: 'date', nullable: true })
   birthday: Date;
 
-  @Column({ nullable: true, comment: 'male, female, other' })
-  gender: string;
+  @Column({
+    type: 'enum',
+    enum: Gender,
+    nullable: true,
+  })
+  gender: Gender;
 
   @Column({ nullable: true })
   location: string;
