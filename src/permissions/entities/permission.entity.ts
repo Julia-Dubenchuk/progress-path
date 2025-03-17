@@ -8,13 +8,19 @@ import {
 } from 'typeorm';
 import { Role } from 'src/roles/entities/role.entity';
 
+export enum Action {
+  CREATE_LIST = 'create-list',
+  EDIT_ITEM = 'edit-item',
+  DELETE_USER = 'delete-user',
+}
+
 @Entity('permissions')
 export class Permission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true, comment: 'create-list, edit-item, delete-user' })
-  action: string;
+  @Column({ type: 'enum', enum: Action, unique: true })
+  action: Action;
 
   @Column({ type: 'text', nullable: true })
   description: string;

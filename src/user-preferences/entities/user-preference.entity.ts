@@ -1,12 +1,17 @@
 import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 
+export enum Theme {
+  LIGHT = 'light',
+  DARK = 'dark',
+}
+
 @Entity('user_preferences')
 export class UserPreference {
   @PrimaryColumn('uuid')
   id: string; // Shared with users.id
 
-  @Column({ default: 'light' })
+  @Column({ type: 'enum', enum: Theme, default: Theme.LIGHT })
   theme: string;
 
   @Column({ nullable: true })

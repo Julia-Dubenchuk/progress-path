@@ -9,13 +9,25 @@ import {
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 
+export enum SubscriptionType {
+  PREMIUM = 'premium',
+  FREE = 'free',
+}
+
+export enum PaymentStatus {
+  PAID = 'paid',
+  PENDING = 'pending',
+  FAILED = 'failed',
+  CANCELED = 'canceled',
+}
+
 @Entity('subscription_details')
 export class SubscriptionDetail {
   @PrimaryColumn('uuid')
   id: string; // Shared with users.id
 
-  @Column({ comment: 'premium, free' })
-  type: string;
+  @Column({ type: 'enum', enum: SubscriptionType })
+  type: SubscriptionType;
 
   @Column({ type: 'date', nullable: true })
   startDate: Date;
@@ -23,8 +35,8 @@ export class SubscriptionDetail {
   @Column({ type: 'date', nullable: true })
   endDate: Date;
 
-  @Column({ nullable: true })
-  paymentStatus: string;
+  @Column({ type: 'enum', enum: PaymentStatus, nullable: true })
+  paymentStatus: PaymentStatus;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

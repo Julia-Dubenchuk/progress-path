@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Category } from 'src/categories/entities/category.entity';
-import { Item } from 'src/items/entities/item.entity';
+import { Item, STATUS } from 'src/items/entities/item.entity';
 
 @Entity('lists')
 export class List {
@@ -32,8 +32,8 @@ export class List {
   @Column({ type: 'date', nullable: true })
   targetDate: Date;
 
-  @Column({ comment: 'planned, in progress, completed' })
-  status: string;
+  @Column({ type: 'enum', enum: STATUS })
+  status: STATUS;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

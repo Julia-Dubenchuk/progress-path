@@ -10,13 +10,19 @@ import {
 import { User } from 'src/users/entities/user.entity';
 import { Permission } from 'src/permissions/entities/permission.entity';
 
+export enum RoleName {
+  ADMIN = 'admin',
+  PREMIUM = 'premium',
+  USER = 'user',
+}
+
 @Entity('roles')
 export class Role {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', unique: true, comment: 'admin, premium, user' })
-  name: string;
+  @Column({ type: 'enum', enum: RoleName, unique: true })
+  name: RoleName;
 
   @Column({ type: 'text', nullable: true })
   description: string;

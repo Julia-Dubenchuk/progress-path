@@ -9,6 +9,12 @@ import {
 } from 'typeorm';
 import { List } from 'src/lists/entities/list.entity';
 
+export enum STATUS {
+  PLANNED = 'planned',
+  IN_PROGRESS = 'in progress',
+  COMPLETED = 'completed',
+}
+
 @Entity('items')
 export class Item {
   @PrimaryGeneratedColumn('uuid')
@@ -20,8 +26,8 @@ export class Item {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ comment: 'planned, in progress, completed' })
-  status: string;
+  @Column({ type: 'enum', enum: STATUS })
+  status: STATUS;
 
   @Column({ type: 'int' })
   priority: number;
