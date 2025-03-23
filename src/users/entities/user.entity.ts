@@ -10,13 +10,13 @@ import {
   JoinTable,
   JoinColumn,
 } from 'typeorm';
-import { Role } from 'src/roles/entities/role.entity';
-import { ActivityLog } from 'src/activity-logs/entities/activity-log.entity';
-import { UserProfile } from 'src/user-profiles/entities/user-profile.entity.js';
-import { SubscriptionDetail } from 'src/subscription-details/entities/subscription-detail.entity';
-import { UserPreference } from 'src/user-preferences/entities/user-preference.entity';
-import { List } from 'src/lists/entities/list.entity';
-import { Mood } from 'src/moods/entities/mood.entity';
+import { Role } from '../../roles/entities/role.entity';
+import { ActivityLog } from '../../activity-logs/entities/activity-log.entity';
+import { UserProfile } from '../../user-profiles/entities/user-profile.entity';
+import { SubscriptionDetail } from '../../subscription-details/entities/subscription-detail.entity';
+import { UserPreference } from '../../user-preferences/entities/user-preference.entity';
+import { List } from '../../lists/entities/list.entity';
+import { Mood } from '../../moods/entities/mood.entity';
 
 @Entity('users')
 export class User {
@@ -48,19 +48,19 @@ export class User {
   updatedAt: Date;
 
   @OneToOne(() => UserProfile, (profile) => profile.user, { cascade: true })
-  @JoinColumn({ name: 'id' })
+  @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_profile' })
   profile: UserProfile;
 
   @OneToOne(() => SubscriptionDetail, (subscription) => subscription.user, {
     cascade: true,
   })
-  @JoinColumn({ name: 'id' })
+  @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_subscription' })
   subscriptionDetail: SubscriptionDetail;
 
   @OneToOne(() => UserPreference, (preference) => preference.user, {
     cascade: true,
   })
-  @JoinColumn({ name: 'id' })
+  @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_preference' })
   preference: UserPreference;
 
   @ManyToMany(() => Role, (role) => role.users, { cascade: true })

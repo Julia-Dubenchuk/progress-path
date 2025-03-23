@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { List } from 'src/lists/entities/list.entity';
+import { List } from '../../lists/entities/list.entity';
 
 export enum CategoryTitle {
   MOVIES = 'movies',

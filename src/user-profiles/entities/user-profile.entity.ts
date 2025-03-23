@@ -1,5 +1,5 @@
-import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
+import { Entity, PrimaryColumn, Column, OneToOne } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 export enum Gender {
   MALE = 'male',
@@ -10,7 +10,7 @@ export enum Gender {
 @Entity('user_profiles')
 export class UserProfile {
   @PrimaryColumn('uuid')
-  id: string; // This will be the same as the user's id
+  id: string;
 
   @Column({
     type: 'text',
@@ -37,6 +37,5 @@ export class UserProfile {
   location: string;
 
   @OneToOne(() => User, (user) => user.profile)
-  @JoinColumn({ name: 'id' })
   user: User;
 }

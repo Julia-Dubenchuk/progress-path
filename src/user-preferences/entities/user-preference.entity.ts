@@ -1,5 +1,5 @@
-import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
+import { Entity, PrimaryColumn, Column, OneToOne } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 export enum Theme {
   LIGHT = 'light',
@@ -9,7 +9,7 @@ export enum Theme {
 @Entity('user_preferences')
 export class UserPreference {
   @PrimaryColumn('uuid')
-  id: string; // Shared with users.id
+  id: string;
 
   @Column({ type: 'enum', enum: Theme, default: Theme.LIGHT })
   theme: string;
@@ -21,6 +21,5 @@ export class UserPreference {
   language: string;
 
   @OneToOne(() => User, (user) => user.preference)
-  @JoinColumn({ name: 'id' })
   user: User;
 }

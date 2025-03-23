@@ -5,9 +5,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToOne,
-  JoinColumn,
 } from 'typeorm';
-import { User } from 'src/users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 
 export enum SubscriptionType {
   PREMIUM = 'premium',
@@ -24,7 +23,7 @@ export enum PaymentStatus {
 @Entity('subscription_details')
 export class SubscriptionDetail {
   @PrimaryColumn('uuid')
-  id: string; // Shared with users.id
+  id: string;
 
   @Column({ type: 'enum', enum: SubscriptionType })
   type: SubscriptionType;
@@ -45,6 +44,5 @@ export class SubscriptionDetail {
   updatedAt: Date;
 
   @OneToOne(() => User, (user) => user.subscriptionDetail)
-  @JoinColumn({ name: 'id' })
   user: User;
 }
