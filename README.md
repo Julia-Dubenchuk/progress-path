@@ -14,6 +14,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 - [Contributing](#contributing)
 - [License](#license)
 - [Contact](#contact)
+- [Pre-commit Hooks](#pre-commit-hooks)
 
 ## Features
 
@@ -242,3 +243,17 @@ update(@Param('id') id: string, @Body() updateItemDto: UpdateItemDto) {
   // User must have BOTH a required role AND the specific permission
 }
 ```
+
+## Pre-commit Hooks
+
+This project uses Husky and Lint-Staged to enforce code quality checks before commits:
+
+- **Husky**: Sets up Git hooks
+- **Lint-Staged**: Runs linters on staged files
+
+When you commit changes, the pre-commit hook automatically:
+
+1. Runs ESLint to catch code issues
+2. Formats code with Prettier
+
+This ensures that all committed code follows project standards.
