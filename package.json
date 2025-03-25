@@ -98,8 +98,15 @@
   },
   "lint-staged": {
     "*.ts": [
-      "npm run lint",
-      "npm run format"
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
     ]
   }
 }
