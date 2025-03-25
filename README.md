@@ -15,6 +15,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 - [License](#license)
 - [Contact](#contact)
 - [Pre-commit Hooks](#pre-commit-hooks)
+- [Docker Setup](#docker-setup)
 
 ## Features
 
@@ -257,3 +258,67 @@ When you commit changes, the pre-commit hook automatically:
 2. Formats code with Prettier
 
 This ensures that all committed code follows project standards.
+
+## Docker Setup
+
+The project is fully Dockerized for easy setup and deployment.
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Running with Docker
+
+1. **Environment Configuration:**
+
+   Copy the sample environment file:
+
+   ```bash
+   cp .env.docker .env
+   ```
+
+   Adjust any variables as needed for your environment.
+
+2. **Build and start all services:**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **View logs:**
+
+   ```bash
+   docker-compose logs -f
+   ```
+
+4. **Stop all services:**
+
+   ```bash
+   docker-compose down
+   ```
+
+### Development vs Production
+
+- The default Docker setup is for development with hot-reloading enabled.
+- For production, use the production-specific docker-compose file:
+
+  ```bash
+  docker-compose -f docker-compose.prod.yml up -d
+  ```
+
+### Database Persistence
+
+PostgreSQL data is persisted in a Docker volume. To reset the database, remove the volume:
+
+```bash
+docker-compose down -v
+```
+
+### Initial Database Setup
+
+When running for the first time, you may need to run migrations inside the Docker container:
+
+```bash
+docker-compose exec app npm run migration:run
+```

@@ -13,6 +13,7 @@ import { ListsModule } from './lists/lists.module';
 import { ItemsModule } from './items/items.module';
 import { CategoriesModule } from './categories/categories.module';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module';
+import { HealthModule } from './app/health/health.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ActivityLogsModule } from './activity-logs/activity-logs.module';
     ItemsModule,
     CategoriesModule,
     ActivityLogsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

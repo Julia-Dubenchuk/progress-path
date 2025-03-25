@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+dist
+coverage
+.git
+.husky
+.vscode
+.github
+.env
+*.md
+tests
+test
+.eslintrc.js
+.prettierrc
+jest.config.js
+docker-compose*.yml 
