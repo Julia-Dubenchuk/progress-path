@@ -10,8 +10,7 @@ import { SubscriptionDetail } from '../../subscription-details/entities/subscrip
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { Auth0User } from '../types';
-import { Repository } from 'typeorm';
-import { compare } from 'bcrypt';
+import * as bcrypt from 'bcrypt';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -84,16 +83,21 @@ describe('AuthService', () => {
     };
 
     it('should successfully register a new user', async () => {
-      mockUserRepository.findOne.mockResolvedValue(null);
+      mockUserRepository.findOne.mockResolvedValueOnce(null);
+
       mockUserRepository.manager.transaction.mockImplementation(
-        async (callback: (manager: Repository<any>) => Promise<void>) => {
+        async (callback: (manager: any) => Promise<void>) => {
           await callback({
-            create: jest.fn(),
-            save: jest.fn(),
-          } as unknown as Repository<any>);
+            create: jest.fn().mockReturnValue({
+              id: 'test-id',
+            }),
+            save: jest.fn().mockResolvedValue(true),
+          });
+          return true;
         },
       );
-      mockUserRepository.findOne.mockResolvedValue({
+
+      mockUserRepository.findOne.mockResolvedValueOnce({
         id: 'test-id',
         email: mockRegisterDto.email,
         username: mockRegisterDto.username,
@@ -136,10 +140,12 @@ describe('AuthService', () => {
         id: 'test-id',
         email: mockLoginDto.email,
         password: '$2b$10$test-hash',
+        username: 'testuser',
       };
 
       mockUserRepository.findOne.mockResolvedValue(mockUser);
-      jest.spyOn({ compare }, 'compare').mockResolvedValue(true);
+
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
 
       const result = await service.loginWithCredentials(mockLoginDto);
 
