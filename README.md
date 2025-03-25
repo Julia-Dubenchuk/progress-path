@@ -189,3 +189,56 @@ For questions or feedback, please contact:
 
 - **Yulia Dubenchuk:** dubenchuk6@gmail.com
 - **GitHub:** Julia-Dubenchuk
+
+## Role-Based Access Control (RBAC)
+
+The application implements a comprehensive Role-Based Access Control (RBAC) system with multiple layers of authorization:
+
+### 1. Role-Based Protection
+
+Users are assigned roles (Admin, Premium, User) which determine their access levels.
+
+```typescript
+@ActionOnResource({ roles: [RoleName.ADMIN] })
+create(@Body() createItemDto: CreateItemDto) {
+  // Only admins can access this endpoint
+}
+```
+
+### 2. Permission-Based Protection
+
+Finer-grained control through specific permissions (create-list, edit-item, delete-user).
+
+```typescript
+@ActionOnResource({ permissions: [Action.EDIT_ITEM] })
+findAll() {
+  // Only users with edit-item permission can access this endpoint
+}
+```
+
+### 3. Policy-Based Protection
+
+Complex access rules using CASL abilities for dynamic permission checking.
+
+```typescript
+@UseGuards(PoliciesGuard)
+@CheckPolicies((ability: AppAbility) => ability.can(Action.EDIT_ITEM, 'all'))
+findOne(@Param('id') id: string) {
+  // Uses CASL to evaluate complex permission rules
+}
+```
+
+### 4. Combined Protection Strategies
+
+Combining roles and permissions for more complex authorization scenarios.
+
+```typescript
+@ActionOnResource({
+  roles: [RoleName.ADMIN, RoleName.PREMIUM],
+  permissions: [Action.EDIT_ITEM],
+  requireAll: true,
+})
+update(@Param('id') id: string, @Body() updateItemDto: UpdateItemDto) {
+  // User must have BOTH a required role AND the specific permission
+}
+```

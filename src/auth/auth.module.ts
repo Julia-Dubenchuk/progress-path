@@ -10,6 +10,10 @@ import { User } from '../users/entities/user.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { UserPreference } from '../user-preferences/entities/user-preference.entity';
 import { SubscriptionDetail } from '../subscription-details/entities/subscription-detail.entity';
+import { RolesGuard } from './guards/roles.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
+import { PoliciesGuard } from './guards/policies.guard';
+import { CaslAbilityFactory } from './casl/casl-ability.factory';
 
 @Module({
   imports: [
@@ -31,7 +35,20 @@ import { SubscriptionDetail } from '../subscription-details/entities/subscriptio
     }),
   ],
   controllers: [AuthController],
-  providers: [Auth0Strategy, AuthService],
-  exports: [AuthService],
+  providers: [
+    Auth0Strategy,
+    AuthService,
+    RolesGuard,
+    PermissionsGuard,
+    PoliciesGuard,
+    CaslAbilityFactory,
+  ],
+  exports: [
+    AuthService,
+    RolesGuard,
+    PermissionsGuard,
+    PoliciesGuard,
+    CaslAbilityFactory,
+  ],
 })
 export class AuthModule {}
