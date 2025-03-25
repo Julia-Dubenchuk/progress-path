@@ -49,6 +49,7 @@ import { CaslAbilityFactory } from './casl/casl-ability.factory';
     PermissionsGuard,
     PoliciesGuard,
     CaslAbilityFactory,
+    TypeOrmModule,
   ],
 })
 export class AuthModule {}
