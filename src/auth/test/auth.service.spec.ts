@@ -167,32 +167,25 @@ describe('AuthService', () => {
 
   describe('register (Auth0)', () => {
     const mockAuth0User: Auth0User = {
-      accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token',
-      profile: {
-        id: 'auth0|123',
-        displayName: 'Test User',
-        name: {
-          givenName: 'Test',
-          familyName: 'User',
-        },
-        emails: [{ value: 'test@example.com' }],
-      },
+      id: 'auth0|123',
+      firstName: 'Test',
+      lastName: 'User',
+      email: 'test@example.com',
     };
 
     it('should successfully register a new Auth0 user', async () => {
       mockUserRepository.findOne.mockResolvedValue(null);
       mockUserRepository.create.mockReturnValue({
         id: 'test-id',
-        email: mockAuth0User.profile.emails[0].value,
-        firstName: mockAuth0User.profile.name?.givenName,
-        lastName: mockAuth0User.profile.name?.familyName,
+        email: mockAuth0User.email,
+        firstName: mockAuth0User.firstName,
+        lastName: mockAuth0User.lastName,
       });
       mockUserRepository.save.mockResolvedValue({
         id: 'test-id',
-        email: mockAuth0User.profile.emails[0].value,
-        firstName: mockAuth0User.profile.name?.givenName,
-        lastName: mockAuth0User.profile.name?.familyName,
+        email: mockAuth0User.email,
+        firstName: mockAuth0User.firstName,
+        lastName: mockAuth0User.lastName,
       });
 
       const result = await service.register(mockAuth0User);
@@ -200,16 +193,16 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('access_token');
       expect(result).toHaveProperty('user');
       expect(result.user).toMatchObject({
-        email: mockAuth0User.profile.emails[0].value,
-        firstName: mockAuth0User.profile.name?.givenName,
-        lastName: mockAuth0User.profile.name?.familyName,
+        email: mockAuth0User.email,
+        firstName: mockAuth0User.firstName,
+        lastName: mockAuth0User.lastName,
       });
     });
 
     it('should throw ConflictException if Auth0 user already exists', async () => {
       mockUserRepository.findOne.mockResolvedValue({
         id: 'existing-id',
-        email: mockAuth0User.profile.emails[0].value,
+        email: mockAuth0User.email,
       });
 
       await expect(service.register(mockAuth0User)).rejects.toThrow(

@@ -1,5 +1,14 @@
-import { Controller, Get, Post, UseGuards, Req, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Req,
+  Body,
+  Res,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { Auth0User } from './types';
 import { LoginDto } from './dto/login.dto';
@@ -29,5 +38,17 @@ export class AuthController {
   @UseGuards(AuthGuard('auth0'))
   async auth0Callback(@Req() req: { user: Auth0User }) {
     return this.authService.register(req.user);
+  }
+
+  @Get('auth0/logout')
+  logoutAuth0(@Res() res: Response) {
+    const returnTo = encodeURIComponent(
+      `http://localhost:${process.env.PORT}/`,
+    );
+    const logoutURL =
+      `http://${process.env.AUTH0_DOMAIN}/v2/logout` +
+      `?client_id=${process.env.AUTH0_CLIENT_ID}` +
+      `&returnTo=${returnTo}`;
+    res.redirect(logoutURL);
   }
 }

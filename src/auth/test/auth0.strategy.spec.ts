@@ -42,18 +42,23 @@ describe('Auth0Strategy', () => {
     expect(strategy).toBeDefined();
   });
 
-  it('should validate Auth0 profile', () => {
+  it('should validate Auth0 profile', async () => {
     const mockProfile = {
       id: 'auth0|123',
       displayName: 'Test User',
-      name: {
-        givenName: 'Test',
-        familyName: 'User',
+      birthday: '',
+      _raw: '',
+      _json: {
+        email: 'test@example.com',
+        given_name: 'Test',
+        family_name: 'User',
+        picture: null,
+        nickname: 'test_user',
       },
-      emails: [{ value: 'test@example.com' }],
+      provider: 'Test Auth',
     };
 
-    const result = strategy.validate(
+    const result = await strategy.validate(
       {},
       'access-token',
       'refresh-token',
@@ -62,9 +67,11 @@ describe('Auth0Strategy', () => {
 
     expect(result).toEqual({
       id: mockProfile.id,
-      email: mockProfile.emails[0].value,
-      firstName: mockProfile.name.givenName,
-      lastName: mockProfile.name.familyName,
+      email: mockProfile._json.email,
+      firstName: mockProfile._json.given_name,
+      lastName: mockProfile._json.family_name,
+      nickname: 'test_user',
+      picture: null,
     });
   });
 

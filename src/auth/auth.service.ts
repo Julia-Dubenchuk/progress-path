@@ -37,44 +37,45 @@ export class AuthService {
   async register(user: Auth0User) {
     // Check if user already exists
     const existingUser = await this.userRepository.findOne({
-      where: [
-        { email: user.profile.emails[0].value },
-        { googleId: user.profile.id },
-      ],
+      where: [{ email: user.email }, { googleId: user.id }],
     });
 
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
 
-    // Create new user
-    const newUser = this.userRepository.create({
-      email: user.profile.emails[0].value,
-      username: user.profile.emails[0].value.split('@')[0], // Use email prefix as username
-      firstName: user.profile.name?.givenName,
-      lastName: user.profile.name?.familyName,
-      googleId: user.profile.id,
-    });
+    const newUserId = uuidv4();
 
     // Create associated entities
     const userProfile = this.userProfileRepository.create({
-      id: newUser.id,
+      id: newUserId,
+      profilePicture: user.picture as unknown as Buffer<ArrayBufferLike>,
     });
 
     const userPreference = this.userPreferenceRepository.create({
-      id: newUser.id,
+      id: newUserId,
     });
 
     const subscriptionDetail = this.subscriptionDetailRepository.create({
-      id: newUser.id,
+      id: newUserId,
       type: SubscriptionType.FREE,
     });
 
+    // Create new user
+    const newUser = this.userRepository.create({
+      id: newUserId,
+      email: user.email,
+      username: user.nickname ?? user.email.split('@')[0],
+      firstName: user.firstName,
+      lastName: user.lastName,
+      googleId: user.id,
+    });
+
     // Save all entities
-    await this.userRepository.save(newUser);
     await this.userProfileRepository.save(userProfile);
     await this.userPreferenceRepository.save(userPreference);
     await this.subscriptionDetailRepository.save(subscriptionDetail);
+    await this.userRepository.save(newUser);
 
     return this.login(newUser);
   }
@@ -172,6 +173,7 @@ export class AuthService {
         detail: errorDetail,
         hint: errorHint,
       });
+
       throw new InternalServerErrorException(
         `Failed to register user: ${errorMessage}`,
       );
@@ -188,6 +190,7 @@ export class AuthService {
     }
 
     const isPasswordValid = await compare(loginDto.password, user.password);
+
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
