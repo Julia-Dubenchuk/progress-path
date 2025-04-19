@@ -29,17 +29,17 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  password: string; // This can be null if the user registers via social login
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  password: string | null; // If the user registers via social login, it will be null
 
-  @Column({ nullable: true })
-  googleId: string;
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  googleId: string | null;
 
-  @Column({ nullable: true })
-  firstName: string;
+  @Column({ type: 'varchar', nullable: true })
+  firstName: string | null;
 
-  @Column({ nullable: true })
-  lastName: string;
+  @Column({ type: 'varchar', nullable: true })
+  lastName: string | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

@@ -14,6 +14,9 @@ export enum CategoryTitle {
   ARTICLES = 'articles',
   GOALS = 'goals',
   SKILLS = 'skills',
+  WORK = 'work',
+  PERSONAL = 'personal',
+  LEARNING = 'learning',
 }
 
 @Entity('categories')
@@ -21,7 +24,7 @@ export class Category {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: CategoryTitle })
+  @Column({ type: 'enum', enum: CategoryTitle, unique: true })
   title: CategoryTitle;
 
   @Column({ type: 'text', nullable: true })

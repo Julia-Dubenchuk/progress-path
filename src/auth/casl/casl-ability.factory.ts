@@ -27,19 +27,19 @@ export class CaslAbilityFactory {
 
     if (this.hasRole(user, RoleName.ADMIN)) {
       // Admins can do anything
-      can(Action.CREATE_LIST, 'all');
-      can(Action.EDIT_ITEM, 'all');
+      can(Action.CREATE_CONTENT, 'all');
+      can(Action.CREATE_USER, 'all');
       can(Action.DELETE_USER, 'all');
       // Add more admin permissions as needed
     } else if (this.hasRole(user, RoleName.PREMIUM)) {
       // Premium users can create lists and edit their own items
-      can(Action.CREATE_LIST, List);
-      can(Action.EDIT_ITEM, Item, { userId: user.id });
+      can(Action.CREATE_CONTENT, List);
+      can(Action.UPDATE_CONTENT, Item, { userId: user.id });
       // Add more premium permissions as needed
     } else {
       // Regular users have limited permissions
-      can(Action.CREATE_LIST, List, { limit: 5 }); // Example of condition - limit to 5 lists
-      can(Action.EDIT_ITEM, Item, { userId: user.id });
+      can(Action.CREATE_CONTENT, List, { limit: 5 }); // Example of condition - limit to 5 lists
+      can(Action.UPDATE_CONTENT, Item, { userId: user.id });
       // Add more regular user permissions as needed
     }
 

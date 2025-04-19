@@ -14,7 +14,7 @@ export class Mood {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ comment: 'happy, sad, anxiety' })
+  @Column({ comment: 'happy, sad, anxiety', nullable: false })
   mood: string;
 
   @Column({ type: 'text', nullable: true, comment: 'Reasons' })

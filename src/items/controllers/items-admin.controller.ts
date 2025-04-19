@@ -38,7 +38,7 @@ export class ItemsAdminController {
 
   // Using permission-based access control
   @Get()
-  @ActionOnResource({ permissions: [Action.EDIT_ITEM] })
+  @ActionOnResource({ permissions: [Action.UPDATE_CONTENT] })
   findAll() {
     return this.itemsService.findAll();
   }
@@ -46,7 +46,9 @@ export class ItemsAdminController {
   // Using policy-based access control
   @Get(':id')
   @UseGuards(PoliciesGuard)
-  @CheckPolicies((ability: AppAbility) => ability.can(Action.EDIT_ITEM, 'all'))
+  @CheckPolicies((ability: AppAbility) =>
+    ability.can(Action.UPDATE_CONTENT, 'all'),
+  )
   findOne(@Param('id') id: string) {
     return this.itemsService.findOne(id);
   }
@@ -55,7 +57,7 @@ export class ItemsAdminController {
   @Put(':id')
   @ActionOnResource({
     roles: [RoleName.ADMIN, RoleName.PREMIUM],
-    permissions: [Action.EDIT_ITEM],
+    permissions: [Action.UPDATE_CONTENT],
     requireAll: true,
   })
   update(@Param('id') id: string, @Body() updateItemDto: UpdateItemDto) {

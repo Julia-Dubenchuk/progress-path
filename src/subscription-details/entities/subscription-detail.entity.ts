@@ -29,13 +29,13 @@ export class SubscriptionDetail {
   type: SubscriptionType;
 
   @Column({ type: 'date', nullable: true })
-  startDate: Date;
+  startDate: Date | null;
 
   @Column({ type: 'date', nullable: true })
-  endDate: Date;
+  endDate: Date | null;
 
   @Column({ type: 'enum', enum: PaymentStatus, nullable: true })
-  paymentStatus: PaymentStatus;
+  paymentStatus: PaymentStatus | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
