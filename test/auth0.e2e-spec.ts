@@ -21,6 +21,7 @@ describe('Auth0 Authentication (e2e)', () => {
 
   describe('Auth0 Login Flow', () => {
     it('should redirect to Auth0 login page', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return request(app.getHttpServer())
         .get('/auth/auth0')
         .expect(302)

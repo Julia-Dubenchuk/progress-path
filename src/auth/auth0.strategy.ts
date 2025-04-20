@@ -58,6 +58,7 @@ export class Auth0Strategy extends PassportStrategy(
         responseType: 'arraybuffer',
       });
       // 2) Convert to Node Buffer
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       pictureBuffer = Buffer.from(response.data, 'binary');
     }
 

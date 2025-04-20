@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { CreateMoodDto } from './dto/create-mood.dto';
 import { UpdateMoodDto } from './dto/update-mood.dto';
