@@ -7,6 +7,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { hash, compare } from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import { Auth0User } from './types';
 import { User } from '../users/entities/user.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
@@ -17,8 +19,6 @@ import {
 } from '../subscription-details/entities/subscription-detail.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { hash, compare } from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {

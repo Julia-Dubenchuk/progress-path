@@ -100,7 +100,8 @@ export default class InitialDataSeeder implements Seeder {
             return (
               p.action.startsWith('create') ||
               p.action.startsWith('update') ||
-              p.action.startsWith('read')
+              p.action.startsWith('read') ||
+              p.action.startsWith('delete')
             );
           });
           break;

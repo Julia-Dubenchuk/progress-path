@@ -50,6 +50,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Collect all permissions from all roles
     const userPermissions = new Set<string>();
+
     user.roles.forEach((role) => {
       if (role.permissions) {
         role.permissions.forEach((permission) => {

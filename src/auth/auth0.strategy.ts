@@ -38,7 +38,6 @@ export class Auth0Strategy extends PassportStrategy(
     refreshToken: string,
     profile: Profile,
   ) {
-    console.log('PROFILE: ', profile);
     const json = profile._json || {};
 
     const email = json.email;

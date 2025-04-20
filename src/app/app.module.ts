@@ -16,6 +16,7 @@ import { SubscriptionDetailsModule } from '../subscription-details/subscription-
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
 import { RolesModule } from '../roles/roles.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
     ActivityLogsModule,
     RolesModule,
     PermissionsModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
