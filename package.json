@@ -25,7 +25,9 @@
     "schema:sync": "npm run typeorm -- schema:sync -d ./data-source.ts",
     "db:sync": "ts-node sync-schema.ts",
     "seed": "ts-node src/database/run-seed.ts",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "docker:build": "docker build --target production -t progress-path:latest .",
+    "docker:run": "docker run --rm -p 3000:3000 progress-path:latest"
   },
   "dependencies": {
     "@casl/ability": "^6.7.3",
