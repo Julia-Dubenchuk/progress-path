@@ -1,24 +1,19 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
-      target: development
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     ports:
-      - '3000:3000'
+      - 3001:3000
+      - 35729:35729
     depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      - PORT=3000
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/progress_path_db
-      - JWT_SECRET=your_jwt_secret_change_me_in_production
-      - NODE_ENV=development
-    command: npm run start:dev
+      - db
     networks:
       - progress-path-network
     restart: unless-stopped
@@ -29,21 +24,20 @@ services:
       retries: 3
       start_period: 30s
 
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - '5432:5432'
+  db:
+    image: postgres:17.5-alpine
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=progress_path_db
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - DB_HOST=db
     networks:
       - progress-path-network
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -54,4 +48,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data:
+  db-data:
