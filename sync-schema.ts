@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -6,9 +8,7 @@ import * as fs from 'fs';
 // Load environment variables from .env file
 dotenv.config();
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  'postgres://root:root@localhost:5432/progress_path_db';
+const DATABASE_URL = process.env.DATABASE_URL as string;
 const url = new URL(DATABASE_URL);
 
 async function syncSchema() {

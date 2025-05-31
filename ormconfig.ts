@@ -4,9 +4,8 @@ import * as dotenv from 'dotenv';
 // Load environment variables from .env file
 dotenv.config();
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  'postgres://root:root@localhost:5432/progress_path_db';
+const DATABASE_URL = process.env.DATABASE_URL as string;
+
 const url = new URL(DATABASE_URL);
 
 const config: DataSourceOptions = {
