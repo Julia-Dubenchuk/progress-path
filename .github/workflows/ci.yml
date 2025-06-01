@@ -49,6 +49,7 @@ jobs:
           DB_PASSWORD: postgres
           DB_NAME: test_db
           NODE_ENV: test
+          auth0__callbackUrl: http://localhost:3000/auth/auth0/callback
 
   build:
     runs-on: ubuntu-latest
