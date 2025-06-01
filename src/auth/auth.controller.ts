@@ -13,6 +13,7 @@ import { AuthService } from './auth.service';
 import { Auth0User } from './types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import settings from '../config/settings';
 
 @Controller('auth')
 export class AuthController {
@@ -43,11 +44,11 @@ export class AuthController {
   @Get('auth0/logout')
   logoutAuth0(@Res() res: Response) {
     const returnTo = encodeURIComponent(
-      `http://localhost:${process.env.PORT}/`,
+      `http://${settings.HOST}:${settings.PORT}/`,
     );
     const logoutURL =
-      `http://${process.env.AUTH0_DOMAIN}/v2/logout` +
-      `?client_id=${process.env.AUTH0_CLIENT_ID}` +
+      `http://${settings.auth0.domain}/v2/logout` +
+      `?client_id=${settings.auth0.clientId}` +
       `&returnTo=${returnTo}`;
     res.redirect(logoutURL);
   }

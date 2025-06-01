@@ -17,12 +17,13 @@ import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
 import { RolesModule } from '../roles/roles.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { HealthModule } from './health/health.module';
+import settings from '../config/settings';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ envFilePath: '.env' }),
+    ConfigModule.forRoot(),
     JwtModule.register({
-      secret: process.env.JWT_SECRET,
+      secret: settings.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
     }),
     TypeOrmModule.forRootAsync({
