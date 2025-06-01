@@ -6,7 +6,6 @@ import { LoginDto } from '../dto/login.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  process.env['auth0__callbackUrl'] = 'http://localhost/callback';
 
   const mockAuthService = {
     registerWithCredentials: jest.fn(),
