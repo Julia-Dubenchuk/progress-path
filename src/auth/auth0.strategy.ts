@@ -11,10 +11,10 @@ export class Auth0Strategy extends PassportStrategy(
 ) {
   constructor(private configService: ConfigService) {
     const options = {
-      domain: configService.get<string>('AUTH0_DOMAIN') as string,
-      clientID: configService.get<string>('AUTH0_CLIENT_ID') as string,
-      clientSecret: configService.get<string>('AUTH0_CLIENT_SECRET') as string,
-      callbackURL: configService.get<string>('AUTH0_CALLBACK_URL') as string,
+      domain: configService.get<string>('auth0__domain') as string,
+      clientID: configService.get<string>('auth0__clientId') as string,
+      clientSecret: configService.get<string>('auth0__clientSecret') as string,
+      callbackURL: configService.get<string>('auth0__callbackUrl') as string,
       scope: ['openid', 'profile', 'email'],
       state: false,
       passReqToCallback: true,

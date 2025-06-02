@@ -1,23 +1,47 @@
-FROM node:22-alpine AS builder
+ARG NODE_VERSION=22-alpine
+
+# ----------------------------------------
+# 1) Builder stage: install & build everything
+# ----------------------------------------
+FROM node:${NODE_VERSION} AS builder
 
 WORKDIR /usr/src/app
 
+# Copy package files & install ALL deps (dev+prod)
 COPY package*.json ./
-
 RUN npm ci
 
+# Copy source & build
 COPY . .
-
 RUN npm run build
 
-FROM node:22-alpine AS production
+
+# ----------------------------------------
+# 2) Final stage: runtime
+# ----------------------------------------
+FROM node:${NODE_VERSION} AS runtime
 
 WORKDIR /usr/src/app
 
+# Copy only the node_modules (with dev-deps included)
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+# Copy the compiled output
+COPY --from=builder /usr/src/app/dist ./dist
+# Copy package.json for metadata (optional)
 COPY --from=builder /usr/src/app/package*.json ./
 
-COPY --from=builder /usr/src/app/node_modules ./node_modules
+# Default to production
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
 
-COPY --from=builder /usr/src/app/dist ./dist
+# Expose the HTTP port
+EXPOSE 3000
 
-CMD ["node", "dist/main"]
+# Dynamic entrypoint: dev vs prod
+CMD ["sh", "-c", "\
+  if [ \"$NODE_ENV\" = \"development\" ]; then \
+    npm run start:dev; \
+  else \
+    npm run start:prod; \
+  fi\
+"]

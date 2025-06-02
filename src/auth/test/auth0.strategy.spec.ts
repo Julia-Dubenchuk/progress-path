@@ -9,13 +9,13 @@ describe('Auth0Strategy', () => {
   const mockConfigService = {
     get: jest.fn((key: string): string => {
       switch (key) {
-        case 'AUTH0_DOMAIN':
+        case 'auth0__domain':
           return 'test.auth0.com';
-        case 'AUTH0_CLIENT_ID':
+        case 'auth0__clientId':
           return 'test-client-id';
-        case 'AUTH0_CLIENT_SECRET':
+        case 'auth0__clientSecret':
           return 'test-client-secret';
-        case 'AUTH0_CALLBACK_URL':
+        case 'auth0__callbackUrl':
           return 'http://localhost:3000/auth/auth0/callback';
         default:
           return '';
@@ -77,9 +77,9 @@ describe('Auth0Strategy', () => {
 
   it('should initialize with correct configuration', () => {
     const getSpy = jest.spyOn(configService, 'get');
-    expect(getSpy).toHaveBeenCalledWith('AUTH0_DOMAIN');
-    expect(getSpy).toHaveBeenCalledWith('AUTH0_CLIENT_ID');
-    expect(getSpy).toHaveBeenCalledWith('AUTH0_CLIENT_SECRET');
-    expect(getSpy).toHaveBeenCalledWith('AUTH0_CALLBACK_URL');
+    expect(getSpy).toHaveBeenCalledWith('auth0__domain');
+    expect(getSpy).toHaveBeenCalledWith('auth0__clientId');
+    expect(getSpy).toHaveBeenCalledWith('auth0__clientSecret');
+    expect(getSpy).toHaveBeenCalledWith('auth0__callbackUrl');
   });
 });

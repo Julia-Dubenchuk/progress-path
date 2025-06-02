@@ -1,15 +1,9 @@
 import { DataSource } from 'typeorm';
-import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
+import settings from './src/config/settings';
 
-// Load environment variables from .env file
-dotenv.config();
-
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  'postgres://root:root@localhost:5432/progress_path_db';
-const url = new URL(DATABASE_URL);
+const url = new URL(settings.DATABASE_URL);
 
 async function syncSchema() {
   console.log('Synchronizing database schema...');
@@ -22,7 +16,8 @@ async function syncSchema() {
   const entities: any[] = [];
   for (const file of entityFiles) {
     try {
-      const entity = await import(`./${file}`);
+      const entity = (await import(`./${file}`)) as { [key: string]: unknown };
+
       for (const key in entity) {
         if (entity[key] && typeof entity[key] === 'function') {
           entities.push(entity[key]);
