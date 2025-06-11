@@ -150,9 +150,10 @@ export class AuthService {
       });
 
       if (!savedUser) {
-        throw new InternalServerErrorException(
-          'User was not created successfully',
-        );
+        this.logger.error('User was not created successfully', {
+          context: AuthService.name,
+        });
+        throw new InternalServerErrorException();
       }
 
       return this.login(savedUser);
@@ -176,11 +177,10 @@ export class AuthService {
           detail: errorDetail,
           hint: errorHint,
         },
+        context: AuthService.name,
       });
 
-      throw new InternalServerErrorException(
-        `Failed to register user: ${errorMessage}`,
-      );
+      throw new InternalServerErrorException('Failed');
     }
   }
 
@@ -190,13 +190,15 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
-      throw new UnauthorizedException('Invalid credentials');
+      this.logger.error('Invalid credentials', { context: AuthService.name });
+      throw new UnauthorizedException();
     }
 
     const isPasswordValid = await compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      this.logger.error('Invalid credentials', { context: AuthService.name });
+      throw new UnauthorizedException();
     }
 
     return this.login(user);
