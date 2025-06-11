@@ -16,6 +16,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 - [Contact](#contact)
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Docker Setup](#docker-setup)
+- [Logging] (#logging)
 
 ## Features
 
@@ -322,3 +323,72 @@ When running for the first time, you may need to run migrations inside the Docke
 ```bash
 docker-compose exec app npm run migration:run
 ```
+
+## Logging
+
+### Overview
+
+This application uses Winston as a logging library integrated via the `nest-winston` module to provide structured, level-based, and environment-aware logging.
+
+### Logger Configuration
+
+The logger is configured in `src/common/logger/logger.config.ts` using a factory function `createWinstonConfig`, which sets up different transports based on the environment.
+
+Environment variables (in your `.env`):
+
+```env
+# Logging
+NODE_ENV=development        # or "production"
+LOG_LEVEL=debug             # one of: error, warn, info, http, verbose, debug, silly
+```
+
+- `NODE_ENV`
+
+  - `development` → human-readable, colorized console output
+
+  - `production` → JSON-formatted logs (console and files)
+
+- **`LOG_LEVEL`**
+  Controls the minimum severity recorded (e.g. info records info, warn, and error).
+  from pathlib import Path
+
+In development mode:
+
+- Logs are printed to the console in a readable format.
+
+In production mode:
+
+- Console logs are formatted as JSON.
+- Two files are created in the `logs/` folder:
+  - `error.log`: Logs all error-level messages.
+  - `combined.log`: Logs all messages with level `info` and above.
+
+### Logger Module
+
+A custom `LoggerModule` is created in `src/common/logger/logger.module.ts` which imports and provides the `WinstonModule` globally.
+
+### Usage in Controllers/Services
+
+You can inject the logger using NestJS’s `LoggerService` and use it like this:
+
+```typescript
+import { LoggerService } from '@nestjs/common';
+
+constructor(private readonly logger: LoggerService) {}
+
+this.logger.log('This is a log message');
+this.logger.error('Something went wrong', {stack: error.stack});
+this.logger.warn('Warning message');
+```
+
+### Passing Meta Information
+
+To pass additional meta information:
+
+```typescript
+this.logger.log('User created', { meta: { userId: 123, role: 'admin' } });
+```
+
+### File Management
+
+Make sure to add the `logs/` folder to your `.gitignore` file to avoid committing log files to version control.

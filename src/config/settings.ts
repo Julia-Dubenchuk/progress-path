@@ -7,6 +7,7 @@ config({ path: join(process.cwd(), '.env') });
 
 const schema = object().shape({
   NODE_ENV: string().oneOf(['development', 'production', 'test']).required(),
+  LOG_LEVEL: string().oneOf(['debug', 'info', 'error', 'warn']).required(),
   PORT: number().required().default(3000),
   HOST: string().required().default('localhost'),
   DATABASE_URL: string().required(),

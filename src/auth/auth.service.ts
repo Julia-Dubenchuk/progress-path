@@ -19,6 +19,7 @@ import {
 } from '../subscription-details/entities/subscription-detail.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { LoggerService } from '../common/logger/logger.service';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,7 @@ export class AuthService {
     private userPreferenceRepository: Repository<UserPreference>,
     @InjectRepository(SubscriptionDetail)
     private subscriptionDetailRepository: Repository<SubscriptionDetail>,
+    private readonly logger: LoggerService,
   ) {}
 
   async register(user: Auth0User) {
@@ -166,12 +168,14 @@ export class AuthService {
       const errorDetail = (error as { detail?: string }).detail;
       const errorHint = (error as { hint?: string }).hint;
 
-      console.error('Registration error details:', {
-        message: errorMessage,
-        stack: errorStack,
-        code: errorCode,
-        detail: errorDetail,
-        hint: errorHint,
+      this.logger.error('Registration error details:', {
+        meta: {
+          message: errorMessage,
+          stack: errorStack,
+          code: errorCode,
+          detail: errorDetail,
+          hint: errorHint,
+        },
       });
 
       throw new InternalServerErrorException(
