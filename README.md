@@ -16,7 +16,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 - [Contact](#contact)
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Docker Setup](#docker-setup)
-- [Logging] (#logging)
+- [Logging](#logging)
 
 ## Features
 
@@ -342,19 +342,9 @@ NODE_ENV=development        # or "production"
 LOG_LEVEL=debug             # one of: error, warn, info, http, verbose, debug, silly
 ```
 
-- `NODE_ENV`
-
-  - `development` → human-readable, colorized console output
-
-  - `production` → JSON-formatted logs (console and files)
-
-- **`LOG_LEVEL`**
-  Controls the minimum severity recorded (e.g. info records info, warn, and error).
-  from pathlib import Path
-
 In development mode:
 
-- Logs are printed to the console in a readable format.
+- Logs are printed to the console in a human-readable, colorized console output.
 
 In production mode:
 
@@ -369,16 +359,20 @@ A custom `LoggerModule` is created in `src/common/logger/logger.module.ts` which
 
 ### Usage in Controllers/Services
 
-You can inject the logger using NestJS’s `LoggerService` and use it like this:
+A custom LoggerService wraps Winston and implements Nest’s built-in LoggerService interface.
 
 ```typescript
-import { LoggerService } from '@nestjs/common';
-
+// Inject it in any controller or service
 constructor(private readonly logger: LoggerService) {}
 
-this.logger.log('This is a log message');
-this.logger.error('Something went wrong', {stack: error.stack});
-this.logger.warn('Warning message');
+// Log an "info" message
+this.logger.log('User login', { meta: { userId: 123 }, context: MyController.name });
+
+// Log a warning
+this.logger.warn('Missing profile field', { meta: { field: 'bio' }, context: MyService.name });
+
+// Log an error with optional stack trace
+this.logger.error('Failed to save item', { meta: { stack: error.stack }, context: MyController.name });
 ```
 
 ### Passing Meta Information
