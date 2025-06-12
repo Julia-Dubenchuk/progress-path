@@ -50,6 +50,7 @@ jobs:
           POSTGRES_DB: test_db
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
           NODE_ENV: test
+          LOG_LEVEL: info
           auth0__domain: test_domain
           auth0__clientId: test_clientId
           auth0__clientSecret: test_clientSecret

@@ -3,8 +3,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 import settings from './config/settings';
+import { ensureLogsDirExists } from './common/logger/fs.util';
 
 async function bootstrap() {
+  if (settings.NODE_ENV === 'production') {
+    ensureLogsDirExists();
+  }
+
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors();

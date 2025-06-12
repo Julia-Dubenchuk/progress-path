@@ -16,6 +16,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 - [Contact](#contact)
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Docker Setup](#docker-setup)
+- [Logging](#logging)
 
 ## Features
 
@@ -322,3 +323,66 @@ When running for the first time, you may need to run migrations inside the Docke
 ```bash
 docker-compose exec app npm run migration:run
 ```
+
+## Logging
+
+### Overview
+
+This application uses Winston as a logging library integrated via the `nest-winston` module to provide structured, level-based, and environment-aware logging.
+
+### Logger Configuration
+
+The logger is configured in `src/common/logger/logger.config.ts` using a factory function `createWinstonConfig`, which sets up different transports based on the environment.
+
+Environment variables (in your `.env`):
+
+```env
+# Logging
+NODE_ENV=development        # or "production"
+LOG_LEVEL=debug             # one of: error, warn, info, http, verbose, debug, silly
+```
+
+In development mode:
+
+- Logs are printed to the console in a human-readable, colorized console output.
+
+In production mode:
+
+- Console logs are formatted as JSON.
+- Two files are created in the `logs/` folder:
+  - `error.log`: Logs all error-level messages.
+  - `combined.log`: Logs all messages with level `info` and above.
+
+### Logger Module
+
+A custom `LoggerModule` is created in `src/common/logger/logger.module.ts` which imports and provides the `WinstonModule` globally.
+
+### Usage in Controllers/Services
+
+A custom LoggerService wraps Winston and implements Nest’s built-in LoggerService interface.
+
+```typescript
+// Inject it in any controller or service
+constructor(private readonly logger: LoggerService) {}
+
+// Log an "info" message
+this.logger.log('User login', { meta: { userId: 123 }, context: MyController.name });
+
+// Log a warning
+this.logger.warn('Missing profile field', { meta: { field: 'bio' }, context: MyService.name });
+
+// Log an error with optional stack trace
+this.logger.error('Failed to save item', { meta: { stack: error.stack }, context: MyController.name });
+```
+
+### Passing Meta Information
+
+To pass additional meta information:
+
+```typescript
+this.logger.log('User created', { meta: { userId: 123, role: 'admin' } });
+```
+
+### File Management
+
+Make sure to add the `logs/` folder to your `.gitignore` file to avoid committing log files to version control.

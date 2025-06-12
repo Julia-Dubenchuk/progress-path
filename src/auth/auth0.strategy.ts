@@ -9,7 +9,7 @@ export class Auth0Strategy extends PassportStrategy(
   Strategy as new (...args: any[]) => Strategy,
   'auth0',
 ) {
-  constructor(private configService: ConfigService) {
+  constructor(configService: ConfigService) {
     const options = {
       domain: configService.get<string>('auth0__domain') as string,
       clientID: configService.get<string>('auth0__clientId') as string,
