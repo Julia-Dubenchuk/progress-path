@@ -11,6 +11,7 @@ import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { Auth0User } from '../types';
 import * as bcrypt from 'bcrypt';
+import { LoggerModule } from '../../common/logger/logger.module';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -45,6 +46,7 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [LoggerModule],
       providers: [
         AuthService,
         {
