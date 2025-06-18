@@ -18,10 +18,12 @@ import { RolesModule } from '../roles/roles.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { HealthModule } from './health/health.module';
 import settings from '../config/settings';
+import { LoggerModule } from '../common/logger/logger.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
+    LoggerModule,
     JwtModule.register({
       secret: settings.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
