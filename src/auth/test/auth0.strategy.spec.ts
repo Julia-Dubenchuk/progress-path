@@ -1,30 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { Auth0Strategy } from '../auth0.strategy';
+import { LoggerModule } from '../../common/logger/logger.module';
 
 describe('Auth0Strategy', () => {
   let strategy: Auth0Strategy;
-  let configService: ConfigService;
-
-  const mockConfigService = {
-    get: jest.fn((key: string): string => {
-      switch (key) {
-        case 'auth0__domain':
-          return 'test.auth0.com';
-        case 'auth0__clientId':
-          return 'test-client-id';
-        case 'auth0__clientSecret':
-          return 'test-client-secret';
-        case 'auth0__callbackUrl':
-          return 'http://localhost:3000/auth/auth0/callback';
-        default:
-          return '';
-      }
-    }),
+  let mockConfigService: {
+    get: jest.Mock<string, [key: string], any>;
   };
 
   beforeEach(async () => {
+    mockConfigService = {
+      get: jest.fn((key: string): string => {
+        switch (key) {
+          case 'auth0__domain':
+            return 'test.auth0.com';
+          case 'auth0__clientId':
+            return 'test-client-id';
+          case 'auth0__clientSecret':
+            return 'test-client-secret';
+          case 'auth0__callbackUrl':
+            return 'http://localhost:3000/auth/auth0/callback';
+          default:
+            return '';
+        }
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
+      imports: [LoggerModule],
       providers: [
         Auth0Strategy,
         {
@@ -35,7 +39,6 @@ describe('Auth0Strategy', () => {
     }).compile();
 
     strategy = module.get<Auth0Strategy>(Auth0Strategy);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should be defined', () => {
@@ -76,10 +79,9 @@ describe('Auth0Strategy', () => {
   });
 
   it('should initialize with correct configuration', () => {
-    const getSpy = jest.spyOn(configService, 'get');
-    expect(getSpy).toHaveBeenCalledWith('auth0__domain');
-    expect(getSpy).toHaveBeenCalledWith('auth0__clientId');
-    expect(getSpy).toHaveBeenCalledWith('auth0__clientSecret');
-    expect(getSpy).toHaveBeenCalledWith('auth0__callbackUrl');
+    expect(mockConfigService.get).toHaveBeenCalledWith('auth0__domain');
+    expect(mockConfigService.get).toHaveBeenCalledWith('auth0__clientId');
+    expect(mockConfigService.get).toHaveBeenCalledWith('auth0__clientSecret');
+    expect(mockConfigService.get).toHaveBeenCalledWith('auth0__callbackUrl');
   });
 });

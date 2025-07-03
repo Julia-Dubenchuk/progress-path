@@ -19,6 +19,7 @@ import {
 } from '../subscription-details/entities/subscription-detail.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { LoggerService } from '../common/logger/logger.service';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +33,7 @@ export class AuthService {
     private userPreferenceRepository: Repository<UserPreference>,
     @InjectRepository(SubscriptionDetail)
     private subscriptionDetailRepository: Repository<SubscriptionDetail>,
+    private readonly logger: LoggerService,
   ) {}
 
   async register(user: Auth0User) {
@@ -148,9 +150,10 @@ export class AuthService {
       });
 
       if (!savedUser) {
-        throw new InternalServerErrorException(
-          'User was not created successfully',
-        );
+        this.logger.error('User was not created successfully', {
+          context: AuthService.name,
+        });
+        throw new InternalServerErrorException();
       }
 
       return this.login(savedUser);
@@ -166,17 +169,18 @@ export class AuthService {
       const errorDetail = (error as { detail?: string }).detail;
       const errorHint = (error as { hint?: string }).hint;
 
-      console.error('Registration error details:', {
-        message: errorMessage,
-        stack: errorStack,
-        code: errorCode,
-        detail: errorDetail,
-        hint: errorHint,
+      this.logger.error('Registration error details:', {
+        meta: {
+          message: errorMessage,
+          stack: errorStack,
+          code: errorCode,
+          detail: errorDetail,
+          hint: errorHint,
+        },
+        context: AuthService.name,
       });
 
-      throw new InternalServerErrorException(
-        `Failed to register user: ${errorMessage}`,
-      );
+      throw new InternalServerErrorException('Failed');
     }
   }
 
@@ -186,13 +190,15 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
-      throw new UnauthorizedException('Invalid credentials');
+      this.logger.error('Invalid credentials', { context: AuthService.name });
+      throw new UnauthorizedException();
     }
 
     const isPasswordValid = await compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      this.logger.error('Invalid credentials', { context: AuthService.name });
+      throw new UnauthorizedException();
     }
 
     return this.login(user);

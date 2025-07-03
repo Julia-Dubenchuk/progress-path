@@ -42,6 +42,7 @@ CMD ["sh", "-c", "\
   if [ \"$NODE_ENV\" = \"development\" ]; then \
     npm run start:dev; \
   else \
+    RUN mkdir -p logs \
     npm run start:prod; \
   fi\
 "]
