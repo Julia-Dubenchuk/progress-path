@@ -37,12 +37,20 @@ export class AuthService {
   ) {}
 
   async register(user: Auth0User) {
-    // Check if user already exists
+    this.logger.log('Registration attempt via OAuth', {
+      context: AuthService.name,
+      meta: { email: user.email, googleId: user.id },
+    });
+
     const existingUser = await this.userRepository.findOne({
       where: [{ email: user.email }, { googleId: user.id }],
     });
 
     if (existingUser) {
+      this.logger.error('Registration failed: user already exists', {
+        context: AuthService.name,
+        meta: { email: user.email, googleId: user.id },
+      });
       throw new ConflictException('User already exists');
     }
 
@@ -79,10 +87,20 @@ export class AuthService {
     await this.subscriptionDetailRepository.save(subscriptionDetail);
     await this.userRepository.save(newUser);
 
+    this.logger.log('Registration successful via OAuth', {
+      context: AuthService.name,
+      meta: { userId: newUserId, email: user.email },
+    });
+
     return this.login(newUser);
   }
 
   async registerWithCredentials(registerDto: RegisterDto) {
+    this.logger.log('Registration attempt with credentials', {
+      context: AuthService.name,
+      meta: { email: registerDto.email, username: registerDto.username },
+    });
+
     try {
       // Check if user already exists
       const existingUser = await this.userRepository.findOne({
@@ -93,6 +111,10 @@ export class AuthService {
       });
 
       if (existingUser) {
+        this.logger.error('Registration failed: user already exists', {
+          context: AuthService.name,
+          meta: { email: registerDto.email, username: registerDto.username },
+        });
         throw new ConflictException('User already exists');
       }
 
@@ -150,11 +172,20 @@ export class AuthService {
       });
 
       if (!savedUser) {
-        this.logger.error('User was not created successfully', {
-          context: AuthService.name,
-        });
+        this.logger.error(
+          'Registration error: user record missing after save',
+          {
+            context: AuthService.name,
+            meta: { email: registerDto.email },
+          },
+        );
         throw new InternalServerErrorException();
       }
+
+      this.logger.log('Registration successful with credentials', {
+        context: AuthService.name,
+        meta: { userId: entityId, email: registerDto.email },
+      });
 
       return this.login(savedUser);
     } catch (error: unknown) {
@@ -189,16 +220,35 @@ export class AuthService {
       where: { email: loginDto.email },
     });
 
-    if (!user || !user.password) {
-      this.logger.error('Invalid credentials', { context: AuthService.name });
-      throw new UnauthorizedException();
+    if (!user) {
+      this.logger.error('Authentication failed: user not found', {
+        context: AuthService.name,
+        meta: {
+          email: loginDto.email,
+        },
+      });
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    if (!user.password) {
+      this.logger.error('Authentication failed: no password set for user', {
+        context: AuthService.name,
+        meta: {
+          email: loginDto.email,
+          userId: user.id,
+        },
+      });
+      throw new UnauthorizedException('Invalid credentials.');
     }
 
     const isPasswordValid = await compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
-      this.logger.error('Invalid credentials', { context: AuthService.name });
-      throw new UnauthorizedException();
+      this.logger.error('Authentication failed: wrong password', {
+        context: AuthService.name,
+        meta: { email: loginDto.email, userId: user.id },
+      });
+      throw new UnauthorizedException('Invalid credentials.');
     }
 
     return this.login(user);
