@@ -18,6 +18,12 @@ const schema = object().shape({
     clientSecret: string().required(),
     callbackUrl: string().required(),
   }),
+  smtp: object().shape({
+    host: string().required().default('smtp.example.com'),
+    port: number().required().default(2525),
+    user: string().required(),
+    pass: string().required(),
+  }),
 });
 
 export type Settings = InferType<typeof schema>;
