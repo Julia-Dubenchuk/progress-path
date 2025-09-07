@@ -12,6 +12,7 @@ const schema = object().shape({
   HOST: string().required().default('localhost'),
   DATABASE_URL: string().required(),
   JWT_SECRET: string().required(),
+  BCRYPT_SALT_ROUNDS: string().required().default('12'),
   auth0: object().shape({
     domain: string().required(),
     clientId: string().required(),
@@ -23,6 +24,10 @@ const schema = object().shape({
     port: number().required().default(2525),
     user: string().required(),
     pass: string().required(),
+  }),
+  rate_limit: object().shape({
+    limit: number().required().default(100),
+    ttl: number().required().default(60),
   }),
 });
 

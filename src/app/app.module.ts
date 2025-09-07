@@ -2,6 +2,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
+import {
+  ThrottlerModule,
+  ThrottlerModuleOptions,
+  ThrottlerGuard,
+  seconds,
+} from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from '../auth/auth.module';
@@ -39,6 +46,22 @@ import { LoggerModule } from '../common/logger/logger.module';
         logging: true,
       }),
     }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): ThrottlerModuleOptions => {
+        const limit = Number(config.get('rate_limit__limit', 100));
+        const ttlSeconds = Number(config.get('rate_limit__ttl', 60));
+        return {
+          throttlers: [
+            {
+              limit,
+              ttl: seconds(ttlSeconds),
+            },
+          ],
+        };
+      },
+    }),
     AuthModule,
     UsersModule,
     MoodsModule,
@@ -54,6 +77,6 @@ import { LoggerModule } from '../common/logger/logger.module';
     HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
