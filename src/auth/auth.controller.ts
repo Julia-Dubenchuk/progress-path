@@ -13,12 +13,20 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiTooManyRequestsResponse,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Auth0User } from './types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import settings from '../config/settings';
 import { LoggerService } from '../common/logger/logger.service';
 
@@ -65,11 +73,15 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({ default: { limit: 5, ttl: 3600 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request a password reset link' })
   @ApiResponse({ status: 200, description: 'Reset link sent if email exists' })
   @ApiResponse({ status: 400, description: 'Invalid email payload' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiTooManyRequestsResponse({
+    description: 'Rate limit exceeded – too many password reset requests',
+  })
   @ApiBody({
     description: 'User email for password reset request',
     type: ForgotPasswordDto,
@@ -101,5 +113,17 @@ export class AuthController {
       });
       throw new InternalServerErrorException('Unable to process request');
     }
+  }
+
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 3600 } })
+  @ApiOperation({ summary: 'Reset user password using token' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input or token' })
+  @ApiTooManyRequestsResponse({
+    description: 'Rate limit exceeded – too many reset password',
+  })
+  async resetPassword(@Body() { token, password }: ResetPasswordDto) {
+    return this.authService.resetPassword(token, password);
   }
 }

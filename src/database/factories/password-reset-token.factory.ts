@@ -8,8 +8,9 @@ export default setSeederFactory(PasswordResetToken, () => {
   const token = faker.string.uuid();
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-  passwordResetToken.token = token;
+  passwordResetToken.tokenHash = token;
   passwordResetToken.expiresAt = expiresAt;
+  passwordResetToken.used = false;
 
   return passwordResetToken;
 });
