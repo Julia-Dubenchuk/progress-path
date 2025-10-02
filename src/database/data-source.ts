@@ -5,7 +5,7 @@ import settings from '../config/settings';
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   url: settings.DATABASE_URL,
-  entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+  entities: [__dirname + '/../**/entities/*.entity{.ts,.js}'],
   synchronize: false,
   logging: settings.NODE_ENV !== 'production',
   migrationsRun: false,

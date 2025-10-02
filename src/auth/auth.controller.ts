@@ -6,18 +6,29 @@ import {
   Req,
   Body,
   Res,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Auth0User } from './types';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import settings from '../config/settings';
+import { LoggerService } from '../common/logger/logger.service';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly logger: LoggerService,
+  ) {}
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
@@ -51,5 +62,44 @@ export class AuthController {
       `?client_id=${settings.auth0.clientId}` +
       `&returnTo=${returnTo}`;
     res.redirect(logoutURL);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a password reset link' })
+  @ApiResponse({ status: 200, description: 'Reset link sent if email exists' })
+  @ApiResponse({ status: 400, description: 'Invalid email payload' })
+  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiBody({
+    description: 'User email for password reset request',
+    type: ForgotPasswordDto,
+    examples: {
+      example1: {
+        summary: 'Valid request',
+        value: { email: 'user@example.com' },
+      },
+    },
+  })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    try {
+      await this.authService.forgotPassword(dto.email);
+      return {
+        message:
+          'If an account with that email exists, you’ll receive a reset link shortly.',
+      };
+    } catch (err) {
+      if (err instanceof BadRequestException) {
+        this.logger.warn(`ForgotPassword - BadRequest: ${err.message}`, {
+          meta: { email: dto.email },
+        });
+        throw err;
+      }
+      this.logger.error('ForgotPassword - InternalError', {
+        meta: { email: dto.email },
+      });
+      throw new InternalServerErrorException('Unable to process request');
+    }
   }
 }

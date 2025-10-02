@@ -17,6 +17,7 @@ import { SubscriptionDetail } from '../../subscription-details/entities/subscrip
 import { UserPreference } from '../../user-preferences/entities/user-preference.entity';
 import { List } from '../../lists/entities/list.entity';
 import { Mood } from '../../moods/entities/mood.entity';
+import { PasswordResetToken } from '../../auth/entities/password-reset-token.entity';
 
 @Entity('users')
 export class User {
@@ -79,4 +80,7 @@ export class User {
 
   @OneToMany(() => Mood, (mood) => mood.user)
   moods: Mood[];
+
+  @OneToMany(() => PasswordResetToken, (token) => token.user)
+  passwordResetTokens: PasswordResetToken[];
 }
