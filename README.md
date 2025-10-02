@@ -17,6 +17,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Docker Setup](#docker-setup)
 - [Logging](#logging)
+- [Error Handling](#error-handling)
 
 ## Features
 
@@ -386,3 +387,45 @@ this.logger.log('User created', { meta: { userId: 123, role: 'admin' } });
 ### File Management
 
 Make sure to add the `logs/` folder to your `.gitignore` file to avoid committing log files to version control.
+
+## Error Handling
+
+All unhandled exceptions in the application are caught by a global exception filter, `AllExceptionsFilter`, ensuring a consistent, user-friendly JSON error response across every endpoint. This filter also logs detailed error metadata via the custom Winston-based `LoggerService`.
+
+### JSON Error Schema
+
+| Field                                                                                                                                 | Type   | Description                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------- |
+| `timestamp`                                                                                                                           | string | ISO‑formatted timestamp when the error occurred.                                                           |
+| `path`                                                                                                                                | string | Request URL path where the error was thrown.                                                               |
+| `method`                                                                                                                              | string | HTTP method (e.g. `GET`, `POST`) used in the request.                                                      |
+| `message`                                                                                                                             | string |                                                                                                            |
+| User‑friendly error message. For HTTP exceptions, this reflects the exception response; otherwise, a generic "Internal server error". |        |                                                                                                            |
+| `stack`                                                                                                                               | string | _(Development only)_ Full error stack trace. Included when `NODE_ENV !== 'production'`.                    |
+| `errorId`                                                                                                                             | string | _(Production only)_ Unique UUID for tracing this error in logs. Included when `NODE_ENV === 'production'`. |
+
+**Example Response (Development)**
+
+```json
+{
+  "timestamp": "2025-06-18T16:45:32.123Z",
+  "path": "/api/users/42",
+  "method": "GET",
+  "message": "User not found",
+  "stack": "Error: User not found\n    at UsersService.findOne..."
+}
+```
+
+**Example Response (Production)**
+
+```json
+{
+  "timestamp": "2025-06-18T16:45:32.123Z",
+  "path": "/api/users/42",
+  "method": "GET",
+  "message": "User not found",
+  "errorId": "3f4a1a2b-4d5e-6f7a-8b9c-0d1e2f3a4b5c"
+}
+```
+
+> All other exceptions (e.g. uncaught JS errors, validation failures) follow this same schema.
