@@ -14,16 +14,24 @@ import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { PoliciesGuard } from './guards/policies.guard';
 import { CaslAbilityFactory } from './casl/casl-ability.factory';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { MailerService } from '../common/mailer/mailer.service';
+import { MailerModule } from '../common/mailer/mailer.module';
+import { UsersModule } from '../users/users.module';
+import { UsersService } from '../users/users.service';
 
 @Module({
   imports: [
     PassportModule.register({ session: false }),
     ConfigModule,
+    MailerModule,
+    UsersModule,
     TypeOrmModule.forFeature([
       User,
       UserProfile,
       UserPreference,
       SubscriptionDetail,
+      PasswordResetToken,
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -42,6 +50,8 @@ import { CaslAbilityFactory } from './casl/casl-ability.factory';
     PermissionsGuard,
     PoliciesGuard,
     CaslAbilityFactory,
+    MailerService,
+    UsersService,
   ],
   exports: [
     AuthService,

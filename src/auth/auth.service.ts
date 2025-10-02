@@ -3,10 +3,11 @@ import {
   ConflictException,
   UnauthorizedException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { hash, compare } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { Auth0User } from './types';
@@ -20,6 +21,10 @@ import {
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoggerService } from '../common/logger/logger.service';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { MailerService } from '../common/mailer/mailer.service';
+import settings from '../config/settings';
+import { generateResetToken, hashToken } from './utils/token.util';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +39,10 @@ export class AuthService {
     @InjectRepository(SubscriptionDetail)
     private subscriptionDetailRepository: Repository<SubscriptionDetail>,
     private readonly logger: LoggerService,
+    @InjectRepository(PasswordResetToken)
+    private readonly tokenRepository: Repository<PasswordResetToken>,
+    private mailerService: MailerService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async register(user: Auth0User) {
@@ -271,5 +280,113 @@ export class AuthService {
         lastName: user.lastName,
       },
     };
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    this.logger.log(`ForgotPassword requested for email: ${email}`, {
+      meta: { email },
+    });
+
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      this.logger.warn(`ForgotPassword: email not registered (${email})`, {
+        meta: { email },
+      });
+      return;
+    }
+
+    try {
+      await this.tokenRepository.update(
+        { userId: user.id, used: false },
+        { used: true },
+      );
+    } catch (err) {
+      this.logger.warn('Failed to invalidate previous reset tokens', {
+        meta: { err },
+      });
+    }
+
+    const { raw, hash } = generateResetToken();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('DEV RESET RAW TOKEN for', user?.email, ':', raw);
+    }
+
+    await this.tokenRepository.save({
+      userId: user.id,
+      tokenHash: hash,
+      expiresAt,
+      used: false,
+    });
+
+    const resetLink = `http://${settings.HOST}:${settings.PORT}/reset-password?token=${raw}`;
+    await this.mailerService.sendPasswordReset(user.email, resetLink);
+
+    this.logger.log(
+      `ForgotPassword: token generated for userId=${user.id}, email=${user.email}`,
+      {
+        meta: { userId: user.id, email },
+      },
+    );
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const tokenHash = hashToken(token);
+
+    return this.dataSource.transaction(async (manager) => {
+      const now = new Date();
+
+      const updateResult = await manager
+        .getRepository(PasswordResetToken)
+        .createQueryBuilder()
+        .update()
+        .set({ used: true })
+        .where('tokenHash = :hash AND used = false AND "expiresAt" > :now', {
+          hash: tokenHash,
+          now,
+        })
+        .returning(['id', 'userId'])
+        .execute();
+
+      if (!updateResult.affected || updateResult.affected === 0) {
+        throw new BadRequestException('Invalid, used, or expired token');
+      }
+
+      const tokenInfo = await manager
+        .getRepository(PasswordResetToken)
+        .findOne({
+          where: { tokenHash },
+          select: ['id', 'userId', 'expiresAt', 'used'],
+        });
+
+      if (!tokenInfo || !tokenInfo.userId) {
+        throw new InternalServerErrorException('Failed to get reset token');
+      }
+
+      if (tokenInfo.expiresAt <= now) {
+        throw new BadRequestException('Token expired');
+      }
+
+      if (tokenInfo.used !== true) {
+        throw new InternalServerErrorException('Token claim inconsistent');
+      }
+
+      const userId = tokenInfo.userId;
+
+      const SALT_ROUNDS = parseInt(settings.BCRYPT_SALT_ROUNDS || '12', 10);
+      const hashed = await hash(newPassword, SALT_ROUNDS);
+
+      await manager.getRepository(User).update(userId, {
+        password: hashed,
+      });
+
+      return { message: 'Password reset successfully' };
+    });
   }
 }
