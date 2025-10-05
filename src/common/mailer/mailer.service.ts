@@ -36,28 +36,23 @@ export class MailerService {
     }
   }
 
-  async sendPasswordReset(email: string, resetLink: string): Promise<void> {
-    try {
-      await this.transporter.sendMail({
-        from: '"Progress Path" <no-reply@yourdomain.com>',
-        to: email,
-        subject: 'Reset your password',
-        html: `
-          <p>You requested a password reset. Click below to set a new password:</p>
-          <a href="${resetLink}">${resetLink}</a>
-          <p>This link will expire in 1 hour.</p>
-        `,
-      });
+  async send(template: () => nodemailer.SendMailOptions): Promise<void> {
+    const mailOptions = template();
 
-      this.logger.log(`Password reset email sent to ${email}`, {
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Email sent to ${mailOptions.to as string}`, {
         context: MailerService.name,
-        meta: { email },
+        meta: { to: mailOptions.to },
       });
     } catch (err) {
-      this.logger.error(`Failed to send reset email to ${email}: ${err}`, {
-        context: MailerService.name,
-        meta: { email },
-      });
+      this.logger.error(
+        `Failed to send email to ${mailOptions.to as string}: ${err}`,
+        {
+          context: MailerService.name,
+          meta: { to: mailOptions.to },
+        },
+      );
       throw err;
     }
   }
