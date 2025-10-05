@@ -342,53 +342,61 @@ export class AuthService {
   ): Promise<{ message: string }> {
     const tokenHash = hashToken(token);
 
+    this.logger.log(`ResetPassword attempt with token: ${token}`, {
+      meta: { tokenHash },
+    });
+
     return this.dataSource.transaction(async (manager) => {
+      const tokenRepo = manager.getRepository(PasswordResetToken);
+      const userRepo = manager.getRepository(User);
       const now = new Date();
 
-      const updateResult = await manager
-        .getRepository(PasswordResetToken)
-        .createQueryBuilder()
-        .update()
-        .set({ used: true })
-        .where('tokenHash = :hash AND used = false AND "expiresAt" > :now', {
-          hash: tokenHash,
-          now,
-        })
-        .returning(['id', 'userId'])
-        .execute();
+      const tokenInfo = await tokenRepo.findOne({
+        where: { tokenHash },
+        select: ['id', 'userId', 'expiresAt', 'used'],
+      });
 
-      if (!updateResult.affected || updateResult.affected === 0) {
-        throw new BadRequestException('Invalid, used, or expired token');
+      if (!tokenInfo) {
+        this.logger.warn(`ResetPassword failed: invalid token`, {
+          meta: { tokenHash },
+        });
+        throw new BadRequestException('Invalid token');
       }
 
-      const tokenInfo = await manager
-        .getRepository(PasswordResetToken)
-        .findOne({
-          where: { tokenHash },
-          select: ['id', 'userId', 'expiresAt', 'used'],
+      if (tokenInfo.used) {
+        this.logger.warn(`ResetPassword failed: token already used`, {
+          meta: { userId: tokenInfo.userId },
         });
-
-      if (!tokenInfo || !tokenInfo.userId) {
-        throw new InternalServerErrorException('Failed to get reset token');
+        throw new BadRequestException('Token already used');
       }
 
       if (tokenInfo.expiresAt <= now) {
+        await tokenRepo.update(tokenInfo.id, { used: true });
+        this.logger.warn(`ResetPassword failed: token expired`, {
+          meta: { userId: tokenInfo.userId, expiredAt: tokenInfo.expiresAt },
+        });
         throw new BadRequestException('Token expired');
       }
 
-      if (tokenInfo.used !== true) {
-        throw new InternalServerErrorException('Token claim inconsistent');
+      if (!tokenInfo.userId) {
+        this.logger.error(`ResetPassword error: token missing user link`, {
+          meta: { tokenId: tokenInfo.id },
+        });
+        throw new InternalServerErrorException(
+          'Token is missing associated user',
+        );
       }
 
-      const userId = tokenInfo.userId;
-
       const SALT_ROUNDS = parseInt(settings.BCRYPT_SALT_ROUNDS || '12', 10);
-      const hashed = await hash(newPassword, SALT_ROUNDS);
+      const hashedPassword = await hash(newPassword, SALT_ROUNDS);
 
-      await manager.getRepository(User).update(userId, {
-        password: hashed,
+      await userRepo.update(tokenInfo.userId, { password: hashedPassword });
+
+      await tokenRepo.update(tokenInfo.id, { used: true });
+
+      this.logger.log(`ResetPassword successful`, {
+        meta: { userId: tokenInfo.userId },
       });
-
       return { message: 'Password reset successfully' };
     });
   }
