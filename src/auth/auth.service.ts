@@ -23,6 +23,7 @@ import { LoggerService } from '../common/logger/logger.service';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailerService } from '../common/mailer/mailer.service';
 import settings from '../config/settings';
+import { resetPasswordTemplate } from '../common/mailer/templates/reset-password.template';
 
 @Injectable()
 export class AuthService {
@@ -303,8 +304,10 @@ export class AuthService {
       expiresAt,
     });
 
-    const resetLink = `http://${settings.HOST}:${settings.PORT}/reset-password?token=${token}`;
-    await this.mailerService.sendPasswordReset(user.email, resetLink);
+    const resetLink = `${settings.FRONTEND_URL}/reset-password?token=${token}`;
+    await this.mailerService.send(() =>
+      resetPasswordTemplate(user.email, resetLink),
+    );
 
     this.logger.log(
       `ForgotPassword: token generated for userId=${user.id}, email=${user.email}`,
