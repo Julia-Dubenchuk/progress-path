@@ -6,6 +6,11 @@ import settings from './src/config/settings';
 const url = new URL(settings.DATABASE_URL);
 
 async function syncSchema() {
+  if (settings.NODE_ENV === 'production') {
+    console.error('Database sync is disabled in production!');
+    process.exit(1);
+  }
+
   console.log('Synchronizing database schema...');
 
   // Get all entity files

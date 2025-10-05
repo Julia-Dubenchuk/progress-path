@@ -20,6 +20,10 @@ import {
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoggerService } from '../common/logger/logger.service';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { MailerService } from '../common/mailer/mailer.service';
+import settings from '../config/settings';
+import { resetPasswordTemplate } from '../common/mailer/templates/reset-password.template';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +38,9 @@ export class AuthService {
     @InjectRepository(SubscriptionDetail)
     private subscriptionDetailRepository: Repository<SubscriptionDetail>,
     private readonly logger: LoggerService,
+    @InjectRepository(PasswordResetToken)
+    private readonly tokenRepository: Repository<PasswordResetToken>,
+    private mailerService: MailerService,
   ) {}
 
   async register(user: Auth0User) {
@@ -271,5 +278,42 @@ export class AuthService {
         lastName: user.lastName,
       },
     };
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    this.logger.log(`ForgotPassword requested for email: ${email}`, {
+      meta: { email },
+    });
+
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      this.logger.warn(`ForgotPassword: email not registered (${email})`, {
+        meta: { email },
+      });
+      return;
+    }
+
+    const token = uuidv4();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    await this.tokenRepository.save({
+      userId: user.id,
+      token,
+      expiresAt,
+    });
+
+    const resetLink = `${settings.FRONTEND_URL}/reset-password?token=${token}`;
+    await this.mailerService.send(() =>
+      resetPasswordTemplate(user.email, resetLink),
+    );
+
+    this.logger.log(
+      `ForgotPassword: token generated for userId=${user.id}, email=${user.email}`,
+      {
+        meta: { userId: user.id, email },
+      },
+    );
   }
 }

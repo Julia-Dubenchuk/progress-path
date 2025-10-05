@@ -12,11 +12,18 @@ const schema = object().shape({
   HOST: string().required().default('localhost'),
   DATABASE_URL: string().required(),
   JWT_SECRET: string().required(),
+  FRONTEND_URL: string().required().default('http://localhost:3000'),
   auth0: object().shape({
     domain: string().required(),
     clientId: string().required(),
     clientSecret: string().required(),
     callbackUrl: string().required(),
+  }),
+  smtp: object().shape({
+    host: string().required().default('smtp.example.com'),
+    port: number().required().default(2525),
+    user: string().required(),
+    pass: string().required(),
   }),
 });
 
