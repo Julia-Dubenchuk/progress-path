@@ -13,11 +13,14 @@ export class PasswordResetToken {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  token: string;
+  @Column({ length: 64 })
+  tokenHash: string;
 
   @Column({ type: 'timestamptz' })
   expiresAt: Date;
+
+  @Column({ default: false })
+  used: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

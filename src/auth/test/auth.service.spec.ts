@@ -1,17 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth.service';
 import { User } from '../../users/entities/user.entity';
 import { UserProfile } from '../../user-profiles/entities/user-profile.entity';
 import { UserPreference } from '../../user-preferences/entities/user-preference.entity';
 import { SubscriptionDetail } from '../../subscription-details/entities/subscription-detail.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { Auth0User } from '../types';
-import * as bcrypt from 'bcrypt';
 import { LoggerModule } from '../../common/logger/logger.module';
+import { MailerService } from '../../common/mailer/mailer.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -44,6 +47,20 @@ describe('AuthService', () => {
     save: jest.fn(),
   };
 
+  const mockPasswordResetToken = {
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
+  const mockMailerService = {
+    init: jest.fn(),
+    send: jest.fn(),
+  };
+
+  const mockDataSource = {
+    transaction: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [LoggerModule],
@@ -68,6 +85,18 @@ describe('AuthService', () => {
         {
           provide: getRepositoryToken(SubscriptionDetail),
           useValue: mockSubscriptionDetailRepository,
+        },
+        {
+          provide: getRepositoryToken(PasswordResetToken),
+          useValue: mockPasswordResetToken,
+        },
+        {
+          provide: MailerService,
+          useValue: mockMailerService,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();

@@ -56,6 +56,14 @@ jobs:
           auth0__clientSecret: test_clientSecret
           auth0__callbackUrl: http://localhost:3000/auth/auth0/callback
           JWT_SECRET: test_secret
+          smtp__host: smtp.mailtrap.io
+          smtp__port: 2525
+          smtp__user: your_mailtrap_user
+          smtp__pass: your_mailtrap_pass
+          BCRYPT_SALT_ROUNDS: 12
+          rate_limit__limit: 100
+          rate_limit__ttl: 60
+          FRONTEND_URL: http://localhost:3000
 
   build:
     runs-on: ubuntu-latest

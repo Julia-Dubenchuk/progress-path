@@ -3,10 +3,11 @@ import {
   ConflictException,
   UnauthorizedException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { hash, compare } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { Auth0User } from './types';
@@ -24,6 +25,7 @@ import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailerService } from '../common/mailer/mailer.service';
 import settings from '../config/settings';
 import { resetPasswordTemplate } from '../common/mailer/templates/reset-password.template';
+import { generateResetToken, hashToken } from './utils/token.util';
 
 @Injectable()
 export class AuthService {
@@ -41,6 +43,7 @@ export class AuthService {
     @InjectRepository(PasswordResetToken)
     private readonly tokenRepository: Repository<PasswordResetToken>,
     private mailerService: MailerService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async register(user: Auth0User) {
@@ -294,17 +297,33 @@ export class AuthService {
       return;
     }
 
-    const token = uuidv4();
+    try {
+      await this.tokenRepository.update(
+        { userId: user.id, used: false },
+        { used: true },
+      );
+    } catch (err) {
+      this.logger.warn('Failed to invalidate previous reset tokens', {
+        meta: { err },
+      });
+    }
+
+    const { raw, hash } = generateResetToken();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('DEV RESET RAW TOKEN for', user?.email, ':', raw);
+    }
+
     await this.tokenRepository.save({
       userId: user.id,
-      token,
+      tokenHash: hash,
       expiresAt,
+      used: false,
     });
 
-    const resetLink = `${settings.FRONTEND_URL}/reset-password?token=${token}`;
+    const resetLink = `${settings.FRONTEND_URL}/reset-password?token=${raw}`;
     await this.mailerService.send(() =>
       resetPasswordTemplate(user.email, resetLink),
     );
@@ -315,5 +334,70 @@ export class AuthService {
         meta: { userId: user.id, email },
       },
     );
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const tokenHash = hashToken(token);
+
+    this.logger.log(`ResetPassword attempt with token: ${token}`, {
+      meta: { tokenHash },
+    });
+
+    return this.dataSource.transaction(async (manager) => {
+      const tokenRepo = manager.getRepository(PasswordResetToken);
+      const userRepo = manager.getRepository(User);
+      const now = new Date();
+
+      const tokenInfo = await tokenRepo.findOne({
+        where: { tokenHash },
+        select: ['id', 'userId', 'expiresAt', 'used'],
+      });
+
+      if (!tokenInfo) {
+        this.logger.warn(`ResetPassword failed: invalid token`, {
+          meta: { tokenHash },
+        });
+        throw new BadRequestException('Invalid token');
+      }
+
+      if (tokenInfo.used) {
+        this.logger.warn(`ResetPassword failed: token already used`, {
+          meta: { userId: tokenInfo.userId },
+        });
+        throw new BadRequestException('Token already used');
+      }
+
+      if (tokenInfo.expiresAt <= now) {
+        await tokenRepo.update(tokenInfo.id, { used: true });
+        this.logger.warn(`ResetPassword failed: token expired`, {
+          meta: { userId: tokenInfo.userId, expiredAt: tokenInfo.expiresAt },
+        });
+        throw new BadRequestException('Token expired');
+      }
+
+      if (!tokenInfo.userId) {
+        this.logger.error(`ResetPassword error: token missing user link`, {
+          meta: { tokenId: tokenInfo.id },
+        });
+        throw new InternalServerErrorException(
+          'Token is missing associated user',
+        );
+      }
+
+      const SALT_ROUNDS = parseInt(settings.BCRYPT_SALT_ROUNDS || '12', 10);
+      const hashedPassword = await hash(newPassword, SALT_ROUNDS);
+
+      await userRepo.update(tokenInfo.userId, { password: hashedPassword });
+
+      await tokenRepo.update(tokenInfo.id, { used: true });
+
+      this.logger.log(`ResetPassword successful`, {
+        meta: { userId: tokenInfo.userId },
+      });
+      return { message: 'Password reset successfully' };
+    });
   }
 }

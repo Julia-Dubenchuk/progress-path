@@ -17,12 +17,15 @@ import { CaslAbilityFactory } from './casl/casl-ability.factory';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailerService } from '../common/mailer/mailer.service';
 import { MailerModule } from '../common/mailer/mailer.module';
+import { UsersModule } from '../users/users.module';
+import { UsersService } from '../users/users.service';
 
 @Module({
   imports: [
     PassportModule.register({ session: false }),
     ConfigModule,
     MailerModule,
+    UsersModule,
     TypeOrmModule.forFeature([
       User,
       UserProfile,
@@ -48,6 +51,7 @@ import { MailerModule } from '../common/mailer/mailer.module';
     PoliciesGuard,
     CaslAbilityFactory,
     MailerService,
+    UsersService,
   ],
   exports: [
     AuthService,
