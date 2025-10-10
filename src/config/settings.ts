@@ -12,6 +12,7 @@ const schema = object().shape({
   HOST: string().required().default('localhost'),
   DATABASE_URL: string().required(),
   JWT_SECRET: string().required(),
+  FRONTEND_URL: string().required().default('http://localhost:3000'),
   BCRYPT_SALT_ROUNDS: string().required().default('12'),
   auth0: object().shape({
     domain: string().required(),
