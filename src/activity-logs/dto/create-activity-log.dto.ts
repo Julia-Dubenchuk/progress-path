@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIP, IsObject, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsIP,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
+import { ActivitySource } from '../entities/activity-log.entity';
 
 export class CreateActivityLogDto {
   @ApiProperty({
@@ -8,6 +18,25 @@ export class CreateActivityLogDto {
     example: 'PASSWORD_RESET_REQUEST',
   })
   action!: string;
+
+  @ApiPropertyOptional({
+    description: 'Short human-readable description of the activity',
+    example: 'Requested password reset email',
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Whether the activity succeeded (e.g., reset token used successfully)',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  success?: boolean;
 
   @ApiPropertyOptional({
     description: 'UUID of the user who triggered the activity',
@@ -24,6 +53,16 @@ export class CreateActivityLogDto {
   @IsOptional()
   @IsIP()
   ip?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Source of the activity (useful to track web vs mobile vs API)',
+    enum: ActivitySource,
+    example: ActivitySource.WEB,
+  })
+  @IsOptional()
+  @IsEnum(ActivitySource)
+  source?: ActivitySource;
 
   @ApiPropertyOptional({
     description:
