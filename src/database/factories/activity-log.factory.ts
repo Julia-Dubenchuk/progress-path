@@ -1,18 +1,21 @@
 import { setSeederFactory } from 'typeorm-extension';
-import { ActivityLog } from '../../activity-logs/entities/activity-log.entity';
+import {
+  ActivityLog,
+  ActivitySource,
+} from '../../activity-logs/entities/activity-log.entity';
 
 export default setSeederFactory(ActivityLog, (faker) => {
   const activityLog = new ActivityLog();
 
   const actions = [
-    'login',
-    'logout',
-    'created_item',
-    'updated_list',
-    'deleted_item',
-    'completed_task',
-    'password_reset_requested',
-    'password_reset',
+    'LOGIN',
+    'LOGOUT',
+    'CREATED_ITEM',
+    'UPDATED_LIST',
+    'DELETED_ITEM',
+    'COMPLETED_TASK',
+    'FORGOT_PASSWORD_REQUEST',
+    'PASSWORD_RESET',
   ];
 
   activityLog.action = faker.helpers.arrayElement(actions);
@@ -20,9 +23,10 @@ export default setSeederFactory(ActivityLog, (faker) => {
     ? faker.string.uuid()
     : undefined;
   activityLog.ip = faker.internet.ip();
+  activityLog.source = ActivitySource.SYSTEM;
 
   switch (activityLog.action) {
-    case 'password_reset_requested':
+    case 'FORGOT_PASSWORD_REQUEST':
       activityLog.meta = {
         emailRequested: faker.internet.email(),
         reason: faker.helpers.arrayElement([
@@ -32,7 +36,7 @@ export default setSeederFactory(ActivityLog, (faker) => {
       };
       break;
 
-    case 'password_reset':
+    case 'PASSWORD_RESET':
       activityLog.meta = {
         method: 'token',
         note: faker.helpers.arrayElement([
@@ -42,28 +46,28 @@ export default setSeederFactory(ActivityLog, (faker) => {
       };
       break;
 
-    case 'created_item':
+    case 'CREATED_ITEM':
       activityLog.meta = {
         itemId: faker.string.uuid(),
         itemType: faker.helpers.arrayElement(['list', 'mood']),
       };
       break;
 
-    case 'updated_list':
+    case 'UPDATED_LIST':
       activityLog.meta = {
         listId: faker.string.uuid(),
         changes: faker.lorem.sentence(),
       };
       break;
 
-    case 'deleted_item':
+    case 'DELETED_ITEM':
       activityLog.meta = {
         itemId: faker.string.uuid(),
         reason: faker.lorem.words(3),
       };
       break;
 
-    case 'completed_task':
+    case 'COMPLETED_TASK':
       activityLog.meta = {
         taskId: faker.string.uuid(),
         durationMinutes: faker.number.int({ min: 1, max: 300 }),

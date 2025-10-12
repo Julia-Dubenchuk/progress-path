@@ -17,6 +17,7 @@ Progress Path is a personal tracker and planner application built with NestJS an
 - [Pre-commit Hooks](#pre-commit-hooks)
 - [Docker Setup](#docker-setup)
 - [Logging](#logging)
+- [Activity Logging API](#activity-logging)
 - [Error Handling](#error-handling)
 
 ## Features
@@ -387,6 +388,36 @@ this.logger.log('User created', { meta: { userId: 123, role: 'admin' } });
 ### File Management
 
 Make sure to add the `logs/` folder to your `.gitignore` file to avoid committing log files to version control.
+
+## Activity Logging API
+
+### Overview
+
+The system includes an activity logging mechanism for tracking key user actions, such as password reset requests, password changes, and other important security-related events.
+All logs are stored in the activity_logs database table.
+
+### Purpose
+
+- Improve security visibility (audit who performed what action and when).
+- Detect suspicious behavior such as repeated failed password reset attempts.
+- Provide an audit trail for troubleshooting and compliance.
+
+### Logged Fields
+
+| Field         | Description                                      |
+| ------------- | ------------------------------------------------ |
+| `userId`      | ID of the user performing the action (if known). |
+| `action`      | The type of event.                               |
+| `ip`          | IP address of the request origin.                |
+| `description` | Optional textual description about the event.    |
+| `source`      | To track web vs mobile vs API ext.               |
+| `meta`        | JSON object with additional contextual data.     |
+| `success`     | Whether the activity succeeded.                  |
+| `createdAt`   | Timestamp when the action occurred.              |
+
+### Developer Notes
+
+Logging is handled transactionally using `ActivityLogsService.createTransactional()`, ensuring consistency between log entries and main business operations.
 
 ## Error Handling
 

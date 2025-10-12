@@ -19,6 +19,8 @@ import { MailerService } from '../common/mailer/mailer.service';
 import { MailerModule } from '../common/mailer/mailer.module';
 import { UsersModule } from '../users/users.module';
 import { UsersService } from '../users/users.service';
+import { ActivityLog } from '../activity-logs/entities/activity-log.entity';
+import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { UsersService } from '../users/users.service';
       UserPreference,
       SubscriptionDetail,
       PasswordResetToken,
+      ActivityLog,
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -52,6 +55,7 @@ import { UsersService } from '../users/users.service';
     CaslAbilityFactory,
     MailerService,
     UsersService,
+    ActivityLogsService,
   ],
   exports: [
     AuthService,

@@ -26,6 +26,8 @@ import { MailerService } from '../common/mailer/mailer.service';
 import settings from '../config/settings';
 import { resetPasswordTemplate } from '../common/mailer/templates/reset-password.template';
 import { generateResetToken, hashToken } from './utils/token.util';
+import { ActivityLogsService } from '../activity-logs/activity-logs.service';
+import { ActivitySource } from '../activity-logs/entities/activity-log.entity';
 
 @Injectable()
 export class AuthService {
@@ -44,6 +46,7 @@ export class AuthService {
     private readonly tokenRepository: Repository<PasswordResetToken>,
     private mailerService: MailerService,
     private readonly dataSource: DataSource,
+    private readonly activityLogsService: ActivityLogsService,
   ) {}
 
   async register(user: Auth0User) {
@@ -283,7 +286,7 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string): Promise<void> {
+  async forgotPassword(email: string, ip?: string): Promise<void> {
     this.logger.log(`ForgotPassword requested for email: ${email}`, {
       meta: { email },
     });
@@ -294,6 +297,15 @@ export class AuthService {
       this.logger.warn(`ForgotPassword: email not registered (${email})`, {
         meta: { email },
       });
+
+      await this.activityLogsService.create({
+        action: 'FORGOT_PASSWORD_FAILED',
+        description: `Unregistered email: ${email}`,
+        success: false,
+        ip,
+        source: ActivitySource.SYSTEM,
+      });
+
       return;
     }
 
@@ -328,6 +340,14 @@ export class AuthService {
       resetPasswordTemplate(user.email, resetLink),
     );
 
+    await this.activityLogsService.create({
+      action: 'FORGOT_PASSWORD_REQUEST',
+      description: 'Password reset link generated',
+      success: true,
+      ip,
+      source: ActivitySource.SYSTEM,
+    });
+
     this.logger.log(
       `ForgotPassword: token generated for userId=${user.id}, email=${user.email}`,
       {
@@ -339,6 +359,7 @@ export class AuthService {
   async resetPassword(
     token: string,
     newPassword: string,
+    ip?: string,
   ): Promise<{ message: string }> {
     const tokenHash = hashToken(token);
 
@@ -360,6 +381,14 @@ export class AuthService {
         this.logger.warn(`ResetPassword failed: invalid token`, {
           meta: { tokenHash },
         });
+
+        await this.activityLogsService.createTransactional(manager, {
+          action: 'PASSWORD_RESET_FAILED',
+          ip,
+          description: 'Invalid token',
+          success: false,
+        });
+
         throw new BadRequestException('Invalid token');
       }
 
@@ -367,6 +396,15 @@ export class AuthService {
         this.logger.warn(`ResetPassword failed: token already used`, {
           meta: { userId: tokenInfo.userId },
         });
+
+        await this.activityLogsService.createTransactional(manager, {
+          userId: tokenInfo.userId,
+          action: 'PASSWORD_RESET_FAILED',
+          ip,
+          description: 'Token already used',
+          success: false,
+        });
+
         throw new BadRequestException('Token already used');
       }
 
@@ -375,6 +413,15 @@ export class AuthService {
         this.logger.warn(`ResetPassword failed: token expired`, {
           meta: { userId: tokenInfo.userId, expiredAt: tokenInfo.expiresAt },
         });
+
+        await this.activityLogsService.createTransactional(manager, {
+          userId: tokenInfo.userId,
+          action: 'PASSWORD_RESET_FAILED',
+          ip,
+          description: 'Token expired',
+          success: false,
+        });
+
         throw new BadRequestException('Token expired');
       }
 
@@ -382,6 +429,14 @@ export class AuthService {
         this.logger.error(`ResetPassword error: token missing user link`, {
           meta: { tokenId: tokenInfo.id },
         });
+
+        await this.activityLogsService.createTransactional(manager, {
+          action: 'PASSWORD_RESET_FAILED',
+          ip,
+          description: 'Token missing user link',
+          success: false,
+        });
+
         throw new InternalServerErrorException(
           'Token is missing associated user',
         );
@@ -394,9 +449,18 @@ export class AuthService {
 
       await tokenRepo.update(tokenInfo.id, { used: true });
 
+      await this.activityLogsService.createTransactional(manager, {
+        userId: tokenInfo.userId,
+        action: 'PASSWORD_RESET_SUCCESS',
+        ip,
+        description: 'Password reset successfully',
+        success: true,
+      });
+
       this.logger.log(`ResetPassword successful`, {
         meta: { userId: tokenInfo.userId },
       });
+
       return { message: 'Password reset successfully' };
     });
   }
