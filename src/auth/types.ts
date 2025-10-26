@@ -6,3 +6,9 @@ export interface Auth0User {
   picture?: string;
   nickname?: string;
 }
+
+export interface IResetPassword {
+  token: string;
+  newPassword: string;
+  ip?: string;
+}

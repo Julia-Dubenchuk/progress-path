@@ -12,7 +12,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
@@ -94,9 +94,11 @@ export class AuthController {
   })
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
+    @Req() req: Request,
   ): Promise<{ message: string }> {
     try {
-      await this.authService.forgotPassword(dto.email);
+      const ip = req.ip;
+      await this.authService.forgotPassword(dto.email, ip);
       return {
         message:
           'If an account with that email exists, you’ll receive a reset link shortly.',
@@ -123,7 +125,11 @@ export class AuthController {
   @ApiTooManyRequestsResponse({
     description: 'Rate limit exceeded – too many reset password',
   })
-  async resetPassword(@Body() { token, password }: ResetPasswordDto) {
-    return this.authService.resetPassword(token, password);
+  async resetPassword(
+    @Body() { token, password }: ResetPasswordDto,
+    @Req() req: Request,
+  ) {
+    const ip = req.ip;
+    return this.authService.resetPassword({ token, newPassword: password, ip });
   }
 }

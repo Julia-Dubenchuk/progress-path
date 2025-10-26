@@ -15,6 +15,7 @@ import { LoginDto } from '../dto/login.dto';
 import { Auth0User } from '../types';
 import { LoggerModule } from '../../common/logger/logger.module';
 import { MailerService } from '../../common/mailer/mailer.service';
+import { ActivityLogsService } from '../../activity-logs/activity-logs.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -61,6 +62,15 @@ describe('AuthService', () => {
     transaction: jest.fn(),
   };
 
+  const mockActivityLogsService = {
+    create: jest.fn(),
+    createTransactional: jest.fn(),
+    findAll: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [LoggerModule],
@@ -97,6 +107,10 @@ describe('AuthService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: ActivityLogsService,
+          useValue: mockActivityLogsService,
         },
       ],
     }).compile();
