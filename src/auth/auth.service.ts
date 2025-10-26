@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { hash, compare } from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { Auth0User } from './types';
+import { Auth0User, IResetPassword } from './types';
 import { User } from '../users/entities/user.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { UserPreference } from '../user-preferences/entities/user-preference.entity';
@@ -298,7 +298,7 @@ export class AuthService {
         meta: { email },
       });
 
-      await this.activityLogsService.create({
+      void this.activityLogsService.create({
         action: 'FORGOT_PASSWORD_FAILED',
         description: `Unregistered email: ${email}`,
         success: false,
@@ -340,7 +340,7 @@ export class AuthService {
       resetPasswordTemplate(user.email, resetLink),
     );
 
-    await this.activityLogsService.create({
+    void this.activityLogsService.create({
       action: 'FORGOT_PASSWORD_REQUEST',
       description: 'Password reset link generated',
       success: true,
@@ -356,11 +356,11 @@ export class AuthService {
     );
   }
 
-  async resetPassword(
-    token: string,
-    newPassword: string,
-    ip?: string,
-  ): Promise<{ message: string }> {
+  async resetPassword({
+    token,
+    newPassword,
+    ip,
+  }: IResetPassword): Promise<{ message: string }> {
     const tokenHash = hashToken(token);
 
     this.logger.log(`ResetPassword attempt with token: ${token}`, {
@@ -382,7 +382,7 @@ export class AuthService {
           meta: { tokenHash },
         });
 
-        await this.activityLogsService.createTransactional(manager, {
+        void this.activityLogsService.createTransactional(manager, {
           action: 'PASSWORD_RESET_FAILED',
           ip,
           description: 'Invalid token',
@@ -397,7 +397,7 @@ export class AuthService {
           meta: { userId: tokenInfo.userId },
         });
 
-        await this.activityLogsService.createTransactional(manager, {
+        void this.activityLogsService.createTransactional(manager, {
           userId: tokenInfo.userId,
           action: 'PASSWORD_RESET_FAILED',
           ip,
@@ -414,7 +414,7 @@ export class AuthService {
           meta: { userId: tokenInfo.userId, expiredAt: tokenInfo.expiresAt },
         });
 
-        await this.activityLogsService.createTransactional(manager, {
+        void this.activityLogsService.createTransactional(manager, {
           userId: tokenInfo.userId,
           action: 'PASSWORD_RESET_FAILED',
           ip,
@@ -430,7 +430,7 @@ export class AuthService {
           meta: { tokenId: tokenInfo.id },
         });
 
-        await this.activityLogsService.createTransactional(manager, {
+        void this.activityLogsService.createTransactional(manager, {
           action: 'PASSWORD_RESET_FAILED',
           ip,
           description: 'Token missing user link',
@@ -449,7 +449,7 @@ export class AuthService {
 
       await tokenRepo.update(tokenInfo.id, { used: true });
 
-      await this.activityLogsService.createTransactional(manager, {
+      void this.activityLogsService.createTransactional(manager, {
         userId: tokenInfo.userId,
         action: 'PASSWORD_RESET_SUCCESS',
         ip,

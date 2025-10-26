@@ -130,6 +130,6 @@ export class AuthController {
     @Req() req: Request,
   ) {
     const ip = req.ip;
-    return this.authService.resetPassword(token, password, ip);
+    return this.authService.resetPassword({ token, newPassword: password, ip });
   }
 }

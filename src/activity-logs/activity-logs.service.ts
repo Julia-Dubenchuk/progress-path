@@ -14,19 +14,53 @@ export class ActivityLogsService {
     private readonly logger: LoggerService,
   ) {}
 
-  async create(
-    createActivityLogDto: CreateActivityLogDto,
-  ): Promise<ActivityLog> {
-    const log = this.activityLogRepository.create(createActivityLogDto);
-    return await this.activityLogRepository.save(log);
+  async create(createActivityLogDto: CreateActivityLogDto): Promise<void> {
+    await this.safeLog(async () => {
+      const log = this.activityLogRepository.create(createActivityLogDto);
+      await this.activityLogRepository.save(log);
+    }, createActivityLogDto);
   }
 
   async createTransactional(
     manager: EntityManager,
     createDto: CreateActivityLogDto,
-  ): Promise<ActivityLog> {
-    const log = manager.create(ActivityLog, createDto);
-    return await manager.save(log);
+  ): Promise<void> {
+    await this.safeLog(async () => {
+      const log = manager.create(ActivityLog, createDto);
+      await manager.save(log);
+    }, createDto);
+  }
+
+  private async safeLog(
+    action: () => Promise<void>,
+    dto: CreateActivityLogDto,
+  ): Promise<void> {
+    try {
+      await action();
+      this.logger.log('Activity log created successfully', {
+        context: ActivityLogsService.name,
+        meta: {
+          action: dto.action,
+          ip: dto.ip,
+          success: dto.success,
+        },
+      });
+    } catch (error: unknown) {
+      const err =
+        error instanceof Error
+          ? { message: error.message, stack: error.stack }
+          : { message: String(error) };
+
+      this.logger.warn('Failed to create activity log', {
+        context: ActivityLogsService.name,
+        meta: {
+          error: err,
+          action: dto.action,
+          ip: dto.ip,
+          description: dto.description,
+        },
+      });
+    }
   }
 
   async findAll(): Promise<ActivityLog[]> {
