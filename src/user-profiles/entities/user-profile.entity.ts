@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, OneToOne } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
 export enum Gender {
@@ -37,5 +37,6 @@ export class UserProfile {
   location: string;
 
   @OneToOne(() => User, (user) => user.profile)
+  @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_profile' })
   user: User;
 }

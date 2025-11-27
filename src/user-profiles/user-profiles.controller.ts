@@ -25,21 +25,21 @@ export class UserProfilesController {
     return this.userProfilesService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userProfilesService.findOne(+id);
+  @Get(':userId')
+  findOne(@Param('userId') id: string) {
+    return this.userProfilesService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(':userId')
   update(
-    @Param('id') id: string,
+    @Param('userId') id: string,
     @Body() updateUserProfileDto: UpdateUserProfileDto,
   ) {
-    return this.userProfilesService.update(+id, updateUserProfileDto);
+    return this.userProfilesService.update(id, updateUserProfileDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userProfilesService.remove(+id);
+  @Delete(':userId')
+  remove(@Param('userId') id: string) {
+    return this.userProfilesService.remove(id);
   }
 }

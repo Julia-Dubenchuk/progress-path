@@ -30,7 +30,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ type: 'varchar', nullable: true, unique: true })
+  @Column({ type: 'varchar', nullable: true })
   password: string | null; // If the user registers via social login, it will be null
 
   @Column({ type: 'varchar', nullable: true, unique: true })
@@ -48,8 +48,7 @@ export class User {
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
-  @OneToOne(() => UserProfile, (profile) => profile.user, { cascade: true })
-  @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_profile' })
+  @OneToOne(() => UserProfile, (profile) => profile.user)
   profile: UserProfile;
 
   @OneToOne(() => SubscriptionDetail, (subscription) => subscription.user, {
@@ -64,7 +63,7 @@ export class User {
   @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_preference' })
   preference: UserPreference;
 
-  @ManyToMany(() => Role, (role) => role.users, { cascade: true })
+  @ManyToMany(() => Role, (role) => role.users)
   @JoinTable({
     name: 'user_roles',
     joinColumn: { name: 'userId', referencedColumnName: 'id' },

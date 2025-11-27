@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -31,7 +31,6 @@ export class UsersService {
     private readonly subscriptionsRepository: Repository<SubscriptionDetail>,
     private readonly logger: LoggerService,
     private readonly activityLogsService: ActivityLogsService,
-    private readonly dataSource: DataSource,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -121,10 +120,29 @@ export class UsersService {
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
-    Object.assign(user, updateUserDto);
+    const { roles, profile, preference, subscriptionDetail, ...userFields } =
+      updateUserDto;
 
     try {
-      const updatedUser = await this.usersRepository.save(user);
+      const updated = this.usersRepository.merge(user, userFields);
+      await this.usersRepository.save(updated);
+
+      if (roles) {
+        const newRoles = await this.rolesRepository.findBy({ id: In(roles) });
+        user.roles = newRoles;
+      }
+
+      if (profile) {
+        await this.profilesRepository.update(id, profile);
+      }
+
+      if (preference) {
+        await this.preferencesRepository.update(id, preference);
+      }
+
+      if (subscriptionDetail) {
+        await this.subscriptionsRepository.update(id, subscriptionDetail);
+      }
 
       void this.activityLogsService.create({
         action: 'USER_UPDATED',
@@ -133,7 +151,7 @@ export class UsersService {
       });
 
       this.logger.log(`User ${id} updated successfully`, { meta: { id } });
-      return updatedUser;
+      return await this.findOne(id);
     } catch (error) {
       this.logger.error(`Failed to update user ${id}`, { meta: error });
 

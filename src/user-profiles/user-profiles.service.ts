@@ -1,27 +1,58 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserProfile } from './entities/user-profile.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class UserProfilesService {
-  create(createUserProfileDto: CreateUserProfileDto) {
-    return 'This action adds a new userProfile';
+  constructor(
+    @InjectRepository(UserProfile)
+    private readonly userProfileRepository: Repository<UserProfile>,
+  ) {}
+
+  async create(
+    createUserProfileDto: CreateUserProfileDto,
+  ): Promise<UserProfile> {
+    const profile = this.userProfileRepository.create(createUserProfileDto);
+    return this.userProfileRepository.save(profile);
   }
 
-  findAll() {
-    return `This action returns all userProfiles`;
+  async findAll(): Promise<UserProfile[]> {
+    return this.userProfileRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} userProfile`;
+  async findOne(userId: string): Promise<UserProfile> {
+    const profile = await this.userProfileRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(`Profile for user ${userId} not found`);
+    }
+
+    return profile;
   }
 
-  update(id: number, updateUserProfileDto: UpdateUserProfileDto) {
-    return `This action updates a #${id} userProfile`;
+  async update(
+    userId: string,
+    updateUserProfileDto: UpdateUserProfileDto,
+  ): Promise<UserProfile> {
+    const profile = await this.findOne(userId);
+
+    const updated = this.userProfileRepository.merge(
+      profile,
+      updateUserProfileDto,
+    );
+    return this.userProfileRepository.save(updated);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} userProfile`;
+  async remove(userId: string): Promise<void> {
+    const result = await this.userProfileRepository.delete(userId);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Profile for user ${userId} not found`);
+    }
   }
 }
