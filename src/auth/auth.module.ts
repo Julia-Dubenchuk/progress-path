@@ -7,9 +7,6 @@ import { Auth0Strategy } from './auth0.strategy';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User } from '../users/entities/user.entity';
-import { UserProfile } from '../user-profiles/entities/user-profile.entity';
-import { UserPreference } from '../user-preferences/entities/user-preference.entity';
-import { SubscriptionDetail } from '../subscription-details/entities/subscription-detail.entity';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { PoliciesGuard } from './guards/policies.guard';
@@ -19,8 +16,12 @@ import { MailerService } from '../common/mailer/mailer.service';
 import { MailerModule } from '../common/mailer/mailer.module';
 import { UsersModule } from '../users/users.module';
 import { UsersService } from '../users/users.service';
-import { ActivityLog } from '../activity-logs/entities/activity-log.entity';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
+import { UserProfilesModule } from '../user-profiles/user-profiles.module';
+import { UserPreferencesModule } from '../user-preferences/user-preferences.module';
+import { SubscriptionDetailsModule } from '../subscription-details/subscription-details.module';
+import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
+import { RolesModule } from '../roles/roles.module';
 
 @Module({
   imports: [
@@ -28,14 +29,12 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
     ConfigModule,
     MailerModule,
     UsersModule,
-    TypeOrmModule.forFeature([
-      User,
-      UserProfile,
-      UserPreference,
-      SubscriptionDetail,
-      PasswordResetToken,
-      ActivityLog,
-    ]),
+    TypeOrmModule.forFeature([User, PasswordResetToken]),
+    RolesModule,
+    UserProfilesModule,
+    UserPreferencesModule,
+    SubscriptionDetailsModule,
+    ActivityLogsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
