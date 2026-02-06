@@ -1,14 +1,18 @@
 import {
+  ForbiddenException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
-import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserProfile } from './entities/user-profile.entity';
 import { Repository } from 'typeorm';
 import { LoggerService } from '../common/logger/logger.service';
+import { User } from '../users/entities/user.entity';
+import { RoleName } from './../roles/entities/role.entity';
+import { IUpdateUserProfile, IUpdateProfilePicture } from './types';
 
 @Injectable()
 export class UserProfilesService {
@@ -69,11 +73,33 @@ export class UserProfilesService {
     return profile;
   }
 
-  async update(
-    userId: string,
-    updateUserProfileDto: UpdateUserProfileDto,
-  ): Promise<UserProfile> {
+  async update({
+    currentUser,
+    userId,
+    updateUserProfileDto,
+  }: IUpdateUserProfile): Promise<UserProfile> {
     try {
+      const isAdmin = currentUser.roles?.some(
+        (role) => role.name === RoleName.ADMIN,
+      );
+
+      if (!isAdmin && currentUser.id !== userId) {
+        this.logger.warn(
+          `User ${currentUser.id} tried to update profile ${userId} without permission`,
+          {
+            context: UserProfilesService.name,
+            meta: {
+              currentUserId: currentUser.id,
+              targetUserId: userId,
+            },
+          },
+        );
+
+        throw new ForbiddenException(
+          'You are not allowed to update this profile',
+        );
+      }
+
       const profile = await this.findOne(userId);
 
       const updated = this.userProfileRepository.merge(
@@ -85,20 +111,39 @@ export class UserProfilesService {
 
       this.logger.log(`Updated profile for user ${userId}`, {
         context: UserProfilesService.name,
-        meta: { userId },
+        meta: {
+          updatedBy: currentUser.id,
+          targetUserId: userId,
+        },
       });
 
       return saved;
     } catch (error) {
       this.logger.error(`Failed to update profile for user ${userId}`, {
         context: UserProfilesService.name,
-        meta: error,
+        meta: { error, currentUserId: currentUser.id },
       });
-      throw new InternalServerErrorException('Failed to update profile');
+
+      throw error instanceof HttpException
+        ? error
+        : new InternalServerErrorException('Failed to update profile');
     }
   }
 
-  async remove(userId: string): Promise<{ message: string }> {
+  async remove(
+    currentUser: User,
+    userId: string,
+  ): Promise<{ message: string }> {
+    const isAdmin = currentUser.roles?.some(
+      (role) => role.name === RoleName.ADMIN,
+    );
+
+    if (!isAdmin && currentUser.id !== userId) {
+      throw new ForbiddenException(
+        'You are not allowed to delete this profile',
+      );
+    }
+
     const result = await this.userProfileRepository.delete(userId);
 
     if (result.affected === 0) {
@@ -119,8 +164,22 @@ export class UserProfilesService {
     };
   }
 
-  async updateProfilePicture(userId: string, buffer: Buffer) {
+  async updateProfilePicture({
+    currentUser,
+    userId,
+    buffer,
+  }: IUpdateProfilePicture) {
     try {
+      const isAdmin = currentUser.roles?.some(
+        (role) => role.name === RoleName.ADMIN,
+      );
+
+      if (!isAdmin && currentUser.id !== userId) {
+        throw new ForbiddenException(
+          'You are not allowed to update a picture for this profile',
+        );
+      }
+
       const profile = await this.findOne(userId);
 
       if (!profile) {

@@ -1,80 +1,81 @@
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { LoggerService } from '../common/logger/logger.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
-import { Role } from '../roles/entities/role.entity';
+import { Role, RoleName } from '../roles/entities/role.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { UserPreference } from '../user-preferences/entities/user-preference.entity';
 import { SubscriptionDetail } from '../subscription-details/entities/subscription-detail.entity';
+import { IUpdateUser } from './types';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
-    @InjectRepository(Role)
-    private readonly rolesRepository: Repository<Role>,
-    @InjectRepository(UserProfile)
-    private readonly profilesRepository: Repository<UserProfile>,
-    @InjectRepository(UserPreference)
-    private readonly preferencesRepository: Repository<UserPreference>,
-    @InjectRepository(SubscriptionDetail)
-    private readonly subscriptionsRepository: Repository<SubscriptionDetail>,
     private readonly logger: LoggerService,
     private readonly activityLogsService: ActivityLogsService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
       const { roles, profile, preference, subscriptionDetail, ...userData } =
         createUserDto;
+
       const userId = uuidv4();
+
+      const userRepository = queryRunner.manager.getRepository(User);
+      const profileRepository = queryRunner.manager.getRepository(UserProfile);
+      const preferenceRepository =
+        queryRunner.manager.getRepository(UserPreference);
+      const subscriptionRepository =
+        queryRunner.manager.getRepository(SubscriptionDetail);
+      const roleRepository = queryRunner.manager.getRepository(Role);
 
       let user = this.usersRepository.create({ ...userData, id: userId });
 
       if (profile) {
-        const createdProfile = this.profilesRepository.create({
-          ...profile,
-          id: userId,
-        });
-
-        user.profile = await this.profilesRepository.save(createdProfile);
+        user.profile = await profileRepository.save({ ...profile, id: userId });
       }
 
       if (preference) {
-        const createdPreference = this.preferencesRepository.create({
+        user.preference = await preferenceRepository.save({
           ...preference,
           id: userId,
         });
-        user.preference =
-          await this.preferencesRepository.save(createdPreference);
       }
 
       if (subscriptionDetail) {
-        const createdSubscription = this.subscriptionsRepository.create({
+        user.subscriptionDetail = await subscriptionRepository.save({
           ...subscriptionDetail,
           id: userId,
         });
-        user.subscriptionDetail =
-          await this.subscriptionsRepository.save(createdSubscription);
       }
 
       if (roles?.length) {
-        user.roles = await this.rolesRepository.find({
+        user.roles = await roleRepository.find({
           where: { id: In(roles) },
         });
       }
 
-      user = await this.usersRepository.save(user);
+      user = await userRepository.save(user);
+
+      await queryRunner.commitTransaction();
 
       void this.activityLogsService.create({
         action: 'USER_CREATED',
@@ -88,6 +89,8 @@ export class UsersService {
 
       return user;
     } catch (error) {
+      await queryRunner.rollbackTransaction();
+
       this.logger.error(`Failed to create user`, {
         meta: { error },
       });
@@ -99,6 +102,8 @@ export class UsersService {
       });
 
       throw new InternalServerErrorException('Failed to create user');
+    } finally {
+      await queryRunner.release();
     }
   }
 
@@ -118,31 +123,75 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
-    const { roles, profile, preference, subscriptionDetail, ...userFields } =
-      updateUserDto;
+  async update({ currentUser, id, updateUserDto }: IUpdateUser): Promise<User> {
+    const isAdmin = currentUser.roles?.some(
+      (role) => role.name === RoleName.ADMIN,
+    );
+
+    if (!isAdmin && currentUser.id !== id) {
+      this.logger.warn(
+        `User ${currentUser.id} tried to update user ${id} without permission`,
+        {
+          context: UsersService.name,
+          meta: {
+            currentUserId: currentUser.id,
+            targetUserId: id,
+          },
+        },
+      );
+
+      throw new ForbiddenException(
+        'You are not allowed to update this profile',
+      );
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
-      const updated = this.usersRepository.merge(user, userFields);
-      await this.usersRepository.save(updated);
+      const { roles, profile, preference, subscriptionDetail, ...userFields } =
+        updateUserDto;
+
+      const userRepository = queryRunner.manager.getRepository(User);
+      const profileRepository = queryRunner.manager.getRepository(UserProfile);
+      const preferenceRepository =
+        queryRunner.manager.getRepository(UserPreference);
+      const subscriptionRepository =
+        queryRunner.manager.getRepository(SubscriptionDetail);
+      const roleRepository = queryRunner.manager.getRepository(Role);
+
+      const user = await userRepository.findOne({
+        where: { id },
+        relations: ['roles'],
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User with id ${id} not found`);
+      }
+
+      userRepository.merge(user, userFields);
 
       if (roles) {
-        const newRoles = await this.rolesRepository.findBy({ id: In(roles) });
-        user.roles = newRoles;
+        user.roles = await roleRepository.findBy({ id: In(roles) });
       }
 
       if (profile) {
-        await this.profilesRepository.update(id, profile);
+        await profileRepository.update(id, profile);
       }
 
       if (preference) {
-        await this.preferencesRepository.update(id, preference);
+        await preferenceRepository.update(id, preference);
       }
 
       if (subscriptionDetail) {
-        await this.subscriptionsRepository.update(id, subscriptionDetail);
+        await subscriptionRepository.update(id, subscriptionDetail);
       }
+
+      const updatedUser = await userRepository.save(user);
+
+      await queryRunner.commitTransaction();
 
       void this.activityLogsService.create({
         action: 'USER_UPDATED',
@@ -151,8 +200,9 @@ export class UsersService {
       });
 
       this.logger.log(`User ${id} updated successfully`, { meta: { id } });
-      return await this.findOne(id);
+      return updatedUser;
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to update user ${id}`, { meta: error });
 
       void this.activityLogsService.create({
@@ -162,19 +212,49 @@ export class UsersService {
       });
 
       throw new InternalServerErrorException('Failed to update user');
+    } finally {
+      await queryRunner.release();
     }
   }
 
-  async remove(id: string): Promise<void> {
-    try {
-      const result = await this.usersRepository.delete(id);
+  async remove(currentUser: User, id: string): Promise<void> {
+    const isAdmin = currentUser.roles?.some(
+      (role) => role.name === RoleName.ADMIN,
+    );
 
-      if (result.affected === 0) {
+    if (!isAdmin && currentUser.id !== id) {
+      throw new ForbiddenException('You are not allowed to delete this user');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const userRepository = queryRunner.manager.getRepository(User);
+      const profileRepository = queryRunner.manager.getRepository(UserProfile);
+      const preferenceRepository =
+        queryRunner.manager.getRepository(UserPreference);
+      const subscriptionRepository =
+        queryRunner.manager.getRepository(SubscriptionDetail);
+
+      const user = await userRepository.findOne({ where: { id } });
+
+      if (!user) {
         this.logger.warn(`User with id ${id} not found for deletion`, {
           meta: { id },
         });
         throw new NotFoundException(`User with id ${id} not found`);
       }
+
+      await profileRepository.delete(id);
+      await preferenceRepository.delete(id);
+      await subscriptionRepository.delete(id);
+
+      await userRepository.delete(id);
+
+      await queryRunner.commitTransaction();
 
       void this.activityLogsService.create({
         action: 'USER_DELETED',
@@ -183,11 +263,8 @@ export class UsersService {
       });
 
       this.logger.log(`User ${id} deleted successfully`, { meta: { id } });
-
-      await this.preferencesRepository.delete(id);
-      await this.profilesRepository.delete(id);
-      await this.subscriptionsRepository.delete(id);
     } catch (error) {
+      await queryRunner.rollbackTransaction();
       this.logger.error(`Failed to delete user ${id}`, {
         meta: { id, error },
       });
@@ -199,6 +276,8 @@ export class UsersService {
       });
 
       throw new InternalServerErrorException('Failed to delete user');
+    } finally {
+      await queryRunner.release();
     }
   }
 

@@ -10,6 +10,7 @@ import {
   UploadedFile,
   Res,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -28,6 +29,9 @@ import { UserProfilesService } from './user-profiles.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { UserProfile } from './entities/user-profile.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('User Profiles')
 @Controller('user-profiles')
@@ -59,6 +63,7 @@ export class UserProfilesController {
     return this.userProfilesService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':userId')
   @ApiOperation({ summary: 'Update a user profile' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
@@ -67,21 +72,28 @@ export class UserProfilesController {
   @ApiNotFoundResponse({ description: 'User profile not found' })
   @ApiBody({ type: UpdateUserProfileDto })
   update(
+    @CurrentUser() currentUser: User,
     @Param('userId') id: string,
     @Body() updateUserProfileDto: UpdateUserProfileDto,
   ) {
-    return this.userProfilesService.update(id, updateUserProfileDto);
+    return this.userProfilesService.update({
+      currentUser,
+      userId: id,
+      updateUserProfileDto,
+    });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':userId')
   @ApiOperation({ summary: 'Remove a user profile' })
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiOkResponse({ description: 'Profile removed successfully' })
   @ApiNotFoundResponse({ description: 'User profile not found' })
-  remove(@Param('userId') id: string) {
-    return this.userProfilesService.remove(id);
+  remove(@CurrentUser() currentUser: User, @Param('userId') id: string) {
+    return this.userProfilesService.remove(currentUser, id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':userId/upload-picture')
   @ApiOperation({ summary: 'Upload profile picture for a user' })
   @ApiConsumes('multipart/form-data')
@@ -98,10 +110,15 @@ export class UserProfilesController {
   })
   @UseInterceptors(FileInterceptor('file'))
   uploadProfilePicture(
+    @CurrentUser() currentUser: User,
     @Param('userId') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.userProfilesService.updateProfilePicture(id, file.buffer);
+    return this.userProfilesService.updateProfilePicture({
+      currentUser,
+      userId: id,
+      buffer: file.buffer,
+    });
   }
 
   @Get(':userId/profile-picture')

@@ -22,6 +22,7 @@ import { UserPreferencesModule } from '../user-preferences/user-preferences.modu
 import { SubscriptionDetailsModule } from '../subscription-details/subscription-details.module';
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
 import { RolesModule } from '../roles/roles.module';
+import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { RolesModule } from '../roles/roles.module';
   controllers: [AuthController],
   providers: [
     Auth0Strategy,
+    JwtStrategy,
     AuthService,
     RolesGuard,
     PermissionsGuard,

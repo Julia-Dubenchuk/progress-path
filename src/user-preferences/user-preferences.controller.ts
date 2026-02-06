@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,6 +22,9 @@ import { UserPreferencesService } from './user-preferences.service';
 import { CreateUserPreferenceDto } from './dto/create-user-preference.dto';
 import { UpdateUserPreferenceDto } from './dto/update-user-preference.dto';
 import { UserPreference } from './entities/user-preference.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('User Preferences')
 @Controller('user-preferences')
@@ -54,6 +58,7 @@ export class UserPreferencesController {
     return this.userPreferencesService.findOne(userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':userId')
   @ApiOperation({ summary: 'Update user preferences' })
   @ApiParam({ name: 'userId', description: 'User ID' })
@@ -62,18 +67,24 @@ export class UserPreferencesController {
   @ApiNotFoundResponse({ description: 'Preferences not found' })
   @ApiBody({ type: UpdateUserPreferenceDto })
   update(
+    @CurrentUser() currentUser: User,
     @Param('userId') userId: string,
     @Body() updateUserPreferenceDto: UpdateUserPreferenceDto,
   ) {
-    return this.userPreferencesService.update(userId, updateUserPreferenceDto);
+    return this.userPreferencesService.update({
+      currentUser,
+      userId,
+      updateUserPreferenceDto,
+    });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':userId')
   @ApiOperation({ summary: 'Delete user preferences' })
   @ApiParam({ name: 'userId', description: 'User ID' })
   @ApiOkResponse({ description: 'Preferences removed successfully' })
   @ApiNotFoundResponse({ description: 'Preferences not found' })
-  remove(@Param('userId') userId: string) {
-    return this.userPreferencesService.remove(userId);
+  remove(@CurrentUser() currentUser: User, @Param('userId') userId: string) {
+    return this.userPreferencesService.remove(currentUser, userId);
   }
 }

@@ -6,11 +6,15 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SubscriptionDetailsService } from './subscription-details.service';
 import { CreateSubscriptionDetailDto } from './dto/create-subscription-detail.dto';
 import { UpdateSubscriptionDetailDto } from './dto/update-subscription-detail.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('Subscription Details')
 @Controller('subscription-details')
@@ -54,6 +58,7 @@ export class SubscriptionDetailsController {
     return this.subscriptionDetailsService.findOne(userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':userId')
   @ApiOperation({ summary: 'Update subscription details by userId' })
   @ApiParam({ name: 'userId', type: 'string' })
@@ -66,15 +71,18 @@ export class SubscriptionDetailsController {
     description: 'Subscription details not found.',
   })
   update(
+    @CurrentUser() currentUser: User,
     @Param('userId') userId: string,
     @Body() updateSubscriptionDetailDto: UpdateSubscriptionDetailDto,
   ) {
-    return this.subscriptionDetailsService.update(
+    return this.subscriptionDetailsService.update({
+      currentUser,
       userId,
       updateSubscriptionDetailDto,
-    );
+    });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':userId')
   @ApiOperation({ summary: 'Delete subscription details by userId' })
   @ApiParam({ name: 'userId', type: 'string' })
@@ -86,7 +94,7 @@ export class SubscriptionDetailsController {
     status: 404,
     description: 'Subscription details not found.',
   })
-  remove(@Param('userId') userId: string) {
-    return this.subscriptionDetailsService.remove(userId);
+  remove(@CurrentUser() currentUser: User, @Param('userId') userId: string) {
+    return this.subscriptionDetailsService.remove(currentUser, userId);
   }
 }

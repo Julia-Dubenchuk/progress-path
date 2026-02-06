@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateSubscriptionDetailDto } from './dto/create-subscription-detail.dto';
-import { UpdateSubscriptionDetailDto } from './dto/update-subscription-detail.dto';
 import { SubscriptionDetail } from './entities/subscription-detail.entity';
 import { LoggerService } from '../common/logger/logger.service';
+import { IUpdateSubscriptionDetail } from './types';
+import { RoleName } from '../roles/entities/role.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class SubscriptionDetailsService {
@@ -74,14 +80,37 @@ export class SubscriptionDetailsService {
     return subscription;
   }
 
-  async update(
-    userId: string,
-    updateSubscriptionDetailDto: UpdateSubscriptionDetailDto,
-  ): Promise<SubscriptionDetail> {
+  async update({
+    currentUser,
+    userId,
+    updateSubscriptionDetailDto,
+  }: IUpdateSubscriptionDetail): Promise<SubscriptionDetail> {
     this.logger.log(`Updating subscription detail for user ${userId}`, {
       context: SubscriptionDetailsService.name,
       meta: { updateSubscriptionDetailDto, userId },
     });
+
+    const isAdmin = currentUser.roles?.some(
+      (role) => role.name === RoleName.ADMIN,
+    );
+
+    if (!isAdmin && currentUser.id !== userId) {
+      this.logger.warn(
+        `User ${currentUser.id} tried to update subscription detail for ${userId} without permission`,
+        {
+          context: SubscriptionDetailsService.name,
+          meta: {
+            currentUserId: currentUser.id,
+            targetUserId: userId,
+          },
+        },
+      );
+
+      throw new ForbiddenException(
+        'You are not allowed to update this subscription detail',
+      );
+    }
+
     const subscription = await this.findOne(userId);
 
     const updated = this.subscriptionRepository.merge(
@@ -99,11 +128,25 @@ export class SubscriptionDetailsService {
     return saved;
   }
 
-  async remove(userId: string): Promise<{ message: string }> {
+  async remove(
+    currentUser: User,
+    userId: string,
+  ): Promise<{ message: string }> {
     this.logger.log(`Removing subscription detail for user ${userId}`, {
       context: SubscriptionDetailsService.name,
       meta: { userId },
     });
+
+    const isAdmin = currentUser.roles?.some(
+      (role) => role.name === RoleName.ADMIN,
+    );
+
+    if (!isAdmin && currentUser.id !== userId) {
+      throw new ForbiddenException(
+        'You are not allowed to delete this subscription detail',
+      );
+    }
+
     const result = await this.subscriptionRepository.delete(userId);
 
     if (result.affected === 0) {

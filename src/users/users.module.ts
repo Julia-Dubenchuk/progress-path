@@ -20,6 +20,6 @@ import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
   ],
   controllers: [UsersController],
   providers: [UsersService],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, UsersService],
 })
 export class UsersModule {}
