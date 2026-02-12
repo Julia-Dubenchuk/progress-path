@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { RolesController } from '../roles.controller';
 import { RolesService } from '../roles.service';
+import { Role } from '../entities/role.entity';
+import { Permission } from '../../permissions/entities/permission.entity';
+import { LoggerService } from '../../common/logger/logger.service';
 
 describe('RolesController', () => {
   let controller: RolesController;
@@ -8,7 +12,15 @@ describe('RolesController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RolesController],
-      providers: [RolesService],
+      providers: [
+        RolesService,
+        { provide: getRepositoryToken(Role), useValue: {} },
+        { provide: getRepositoryToken(Permission), useValue: {} },
+        {
+          provide: LoggerService,
+          useValue: { log: jest.fn(), error: jest.fn(), warn: jest.fn() },
+        },
+      ],
     }).compile();
 
     controller = module.get<RolesController>(RolesController);
