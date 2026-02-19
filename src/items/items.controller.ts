@@ -31,10 +31,7 @@ export class ItemsController {
     description: 'The item has been successfully created.',
   })
   create(@Body() createItemDto: CreateItemDto) {
-    // For demonstration purposes, passing a dummy user ID
-    // In a real application, you should get this from authentication
-    const userId = 'dummy-user-id';
-    return this.itemsService.create(createItemDto, userId);
+    return this.itemsService.create(createItemDto);
   }
 
   @Get()
