@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateItemDto } from './dto/create-item.dto';
@@ -10,31 +9,42 @@ import { Item } from './entities/item.entity';
 export class ItemsService {
   constructor(
     @InjectRepository(Item)
-    private itemRepository: Repository<Item>,
+    private readonly itemRepository: Repository<Item>,
   ) {}
 
-  create(createItemDto: CreateItemDto, _userIdForAudit: string) {
-    // _userIdForAudit is used for tracking purposes in our RBAC system
-    // but we don't store it directly on the item since it's linked to a list
+  create(createItemDto: CreateItemDto): Promise<Item> {
     const newItem = this.itemRepository.create({
       ...createItemDto,
     });
     return this.itemRepository.save(newItem);
   }
 
-  findAll() {
+  findAll(): Promise<Item[]> {
     return this.itemRepository.find();
   }
 
-  findOne(id: string) {
-    return this.itemRepository.findOne({ where: { id } });
+  async findOne(id: string): Promise<Item> {
+    const item = await this.itemRepository.findOne({ where: { id } });
+
+    if (!item) {
+      throw new NotFoundException(`Item with id ${id} not found`);
+    }
+
+    return item;
   }
 
-  update(id: string, updateItemDto: UpdateItemDto) {
-    return this.itemRepository.update(id, updateItemDto);
+  async update(id: string, updateItemDto: UpdateItemDto): Promise<Item> {
+    const item = await this.findOne(id);
+    const updated = this.itemRepository.merge(item, updateItemDto);
+
+    return this.itemRepository.save(updated);
   }
 
-  remove(id: string) {
-    return this.itemRepository.delete(id);
+  async remove(id: string): Promise<void> {
+    const result = await this.itemRepository.delete(id);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`Item with id ${id} not found`);
+    }
   }
 }

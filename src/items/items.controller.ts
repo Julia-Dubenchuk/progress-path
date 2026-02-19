@@ -17,6 +17,8 @@ import {
 import { ItemsService } from './items.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
+import { RoleName } from '../roles/entities/role.entity';
 
 @ApiTags('items')
 @Controller('items')
@@ -30,11 +32,9 @@ export class ItemsController {
     status: 201,
     description: 'The item has been successfully created.',
   })
+  @ActionOnResource({ roles: [RoleName.ADMIN] })
   create(@Body() createItemDto: CreateItemDto) {
-    // For demonstration purposes, passing a dummy user ID
-    // In a real application, you should get this from authentication
-    const userId = 'dummy-user-id';
-    return this.itemsService.create(createItemDto, userId);
+    return this.itemsService.create(createItemDto);
   }
 
   @Get()
@@ -60,6 +60,7 @@ export class ItemsController {
     status: 200,
     description: 'The item has been successfully updated.',
   })
+  @ActionOnResource({ roles: [RoleName.ADMIN] })
   update(@Param('id') id: string, @Body() updateItemDto: UpdateItemDto) {
     return this.itemsService.update(id, updateItemDto);
   }
@@ -71,6 +72,7 @@ export class ItemsController {
     status: 200,
     description: 'The item has been successfully deleted.',
   })
+  @ActionOnResource({ roles: [RoleName.ADMIN] })
   remove(@Param('id') id: string) {
     return this.itemsService.remove(id);
   }

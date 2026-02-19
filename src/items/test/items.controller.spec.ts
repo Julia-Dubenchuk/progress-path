@@ -12,7 +12,7 @@ describe('ItemsController', () => {
     findOne: jest.fn().mockResolvedValue({}),
     create: jest.fn().mockReturnValue({}),
     save: jest.fn().mockResolvedValue({}),
-    update: jest.fn().mockResolvedValue({}),
+    merge: jest.fn().mockReturnValue({}),
     delete: jest.fn().mockResolvedValue({}),
   };
 
