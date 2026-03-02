@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -239,7 +240,10 @@ export class UsersService {
       const subscriptionRepository =
         queryRunner.manager.getRepository(SubscriptionDetail);
 
-      const user = await userRepository.findOne({ where: { id } });
+      const user = await userRepository.findOne({
+        where: { id },
+        relations: ['roles'],
+      });
 
       if (!user) {
         this.logger.warn(`User with id ${id} not found for deletion`, {
@@ -248,11 +252,18 @@ export class UsersService {
         throw new NotFoundException(`User with id ${id} not found`);
       }
 
+      if (user.roles?.length) {
+        await queryRunner.manager
+          .createQueryBuilder()
+          .relation(User, 'roles')
+          .of(user.id)
+          .remove(user.roles.map((role) => role.id));
+      }
+
       await profileRepository.delete(id);
+      await userRepository.delete(id);
       await preferenceRepository.delete(id);
       await subscriptionRepository.delete(id);
-
-      await userRepository.delete(id);
 
       await queryRunner.commitTransaction();
 
@@ -264,14 +275,47 @@ export class UsersService {
 
       this.logger.log(`User ${id} deleted successfully`, { meta: { id } });
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      try {
+        await queryRunner.rollbackTransaction();
+      } catch (rollbackError) {
+        this.logger.error(
+          `Failed to rollback delete transaction for user ${id}`,
+          {
+            context: UsersService.name,
+            meta: { id, rollbackError },
+          },
+        );
+      }
+
+      const err =
+        error instanceof Error
+          ? { message: error.message, name: error.name, stack: error.stack }
+          : { message: String(error) };
+
+      if (error instanceof HttpException) {
+        this.logger.warn(`Failed to delete user ${id}`, {
+          context: UsersService.name,
+          meta: { id, error: err },
+        });
+
+        void this.activityLogsService.create({
+          action: 'USER_DELETE_FAILED',
+          description: `User deletion failed for ${id}: ${err.message}`,
+          success: false,
+        });
+
+        throw error;
+      }
+
       this.logger.error(`Failed to delete user ${id}`, {
-        meta: { id, error },
+        context: UsersService.name,
+        trace: error instanceof Error ? error.stack : undefined,
+        meta: { id, error: err },
       });
 
       void this.activityLogsService.create({
         action: 'USER_DELETE_FAILED',
-        description: `User deletion failed`,
+        description: `User deletion failed for ${id}: ${err.message}`,
         success: false,
       });
 
