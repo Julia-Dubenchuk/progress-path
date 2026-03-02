@@ -16,7 +16,7 @@ import { Role, RoleName } from '../roles/entities/role.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { UserPreference } from '../user-preferences/entities/user-preference.entity';
 import { SubscriptionDetail } from '../subscription-details/entities/subscription-detail.entity';
-import { IUpdateUser } from './types';
+import { IDeleteUserResponse, IUpdateUser } from './types';
 
 @Injectable()
 export class UsersService {
@@ -50,10 +50,6 @@ export class UsersService {
 
       let user = this.usersRepository.create({ ...userData, id: userId });
 
-      if (profile) {
-        user.profile = await profileRepository.save({ ...profile, id: userId });
-      }
-
       if (preference) {
         user.preference = await preferenceRepository.save({
           ...preference,
@@ -75,6 +71,10 @@ export class UsersService {
       }
 
       user = await userRepository.save(user);
+
+      if (profile) {
+        user.profile = await profileRepository.save({ ...profile, id: userId });
+      }
 
       await queryRunner.commitTransaction();
 
@@ -218,7 +218,7 @@ export class UsersService {
     }
   }
 
-  async remove(currentUser: User, id: string): Promise<void> {
+  async remove(currentUser: User, id: string): Promise<IDeleteUserResponse> {
     const isAdmin = currentUser.roles?.some(
       (role) => role.name === RoleName.ADMIN,
     );
@@ -274,6 +274,7 @@ export class UsersService {
       });
 
       this.logger.log(`User ${id} deleted successfully`, { meta: { id } });
+      return { message: `User ${id} deleted successfully` };
     } catch (error) {
       try {
         await queryRunner.rollbackTransaction();

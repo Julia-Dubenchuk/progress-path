@@ -6,3 +6,7 @@ export interface IUpdateUser {
   id: string;
   updateUserDto: UpdateUserDto;
 }
+
+export interface IDeleteUserResponse {
+  message: string;
+}
