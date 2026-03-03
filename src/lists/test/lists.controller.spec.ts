@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { ListsController } from '../lists.controller';
 import { ListsService } from '../lists.service';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { User } from '../../users/entities/user.entity';
 
 describe('ListsController', () => {
   let controller: ListsController;
@@ -16,6 +19,8 @@ describe('ListsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ListsController],
       providers: [
+        RolesGuard,
+        { provide: getRepositoryToken(User), useValue: {} },
         {
           provide: ListsService,
           useValue: mockListsService,
