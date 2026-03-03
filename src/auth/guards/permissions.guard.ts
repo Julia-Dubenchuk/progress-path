@@ -8,6 +8,7 @@ import { Action } from '../../permissions/entities/permission.entity';
 
 interface RequestWithUser {
   user: {
+    id?: string;
     sub: string;
     [key: string]: any;
   };
@@ -32,7 +33,7 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const userId = request.user?.sub;
+    const userId = request.user?.id ?? request.user?.sub;
 
     if (!userId) {
       return false; // No user ID in the request, access denied
