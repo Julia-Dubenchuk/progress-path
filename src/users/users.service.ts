@@ -146,6 +146,15 @@ export class UsersService {
       );
     }
 
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['roles'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
@@ -162,15 +171,6 @@ export class UsersService {
       const subscriptionRepository =
         queryRunner.manager.getRepository(SubscriptionDetail);
       const roleRepository = queryRunner.manager.getRepository(Role);
-
-      const user = await userRepository.findOne({
-        where: { id },
-        relations: ['roles'],
-      });
-
-      if (!user) {
-        throw new NotFoundException(`User with id ${id} not found`);
-      }
 
       userRepository.merge(user, userFields);
 
