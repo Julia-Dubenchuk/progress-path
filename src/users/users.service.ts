@@ -204,15 +204,17 @@ export class UsersService {
       return updatedUser;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to update user ${id}`, { meta: error });
 
+      this.logger.error(`Failed to update user ${id}`, { meta: error });
       void this.activityLogsService.create({
         action: 'USER_UPDATE_FAILED',
         description: `User update failed for ${id}`,
         success: false,
       });
 
-      throw new InternalServerErrorException('Failed to update user');
+      throw error instanceof HttpException
+        ? error
+        : new InternalServerErrorException('Failed to update user');
     } finally {
       await queryRunner.release();
     }
