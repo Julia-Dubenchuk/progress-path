@@ -1,16 +1,12 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateSubscriptionDetailDto } from './dto/create-subscription-detail.dto';
 import { SubscriptionDetail } from './entities/subscription-detail.entity';
 import { LoggerService } from '../common/logger/logger.service';
 import { IUpdateSubscriptionDetail } from './types';
-import { RoleName } from '../roles/entities/role.entity';
 import { User } from '../users/entities/user.entity';
+import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
 
 @Injectable()
 export class SubscriptionDetailsService {
@@ -18,6 +14,7 @@ export class SubscriptionDetailsService {
     @InjectRepository(SubscriptionDetail)
     private readonly subscriptionRepository: Repository<SubscriptionDetail>,
     private readonly logger: LoggerService,
+    private readonly ownershipAuthorizationService: OwnershipAuthorizationService,
   ) {}
 
   async create(
@@ -90,26 +87,14 @@ export class SubscriptionDetailsService {
       meta: { updateSubscriptionDetailDto, userId },
     });
 
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
-
-    if (!isAdmin && currentUser.id !== userId) {
-      this.logger.warn(
-        `User ${currentUser.id} tried to update subscription detail for ${userId} without permission`,
-        {
-          context: SubscriptionDetailsService.name,
-          meta: {
-            currentUserId: currentUser.id,
-            targetUserId: userId,
-          },
-        },
-      );
-
-      throw new ForbiddenException(
+    this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+      currentUser,
+      targetUserId: userId,
+      action: 'update subscription detail',
+      context: SubscriptionDetailsService.name,
+      forbiddenMessage:
         'You are not allowed to update this subscription detail',
-      );
-    }
+    });
 
     const subscription = await this.findOne(userId);
 
@@ -137,15 +122,14 @@ export class SubscriptionDetailsService {
       meta: { userId },
     });
 
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
-
-    if (!isAdmin && currentUser.id !== userId) {
-      throw new ForbiddenException(
+    this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+      currentUser,
+      targetUserId: userId,
+      action: 'delete subscription detail',
+      context: SubscriptionDetailsService.name,
+      forbiddenMessage:
         'You are not allowed to delete this subscription detail',
-      );
-    }
+    });
 
     const result = await this.subscriptionRepository.delete(userId);
 

@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { LoggerModule } from '../../common/logger/logger.module';
 import { ActivityLogsService } from '../../activity-logs/activity-logs.service';
+import { OwnershipAuthorizationService } from '../../common/authorization/ownership-authorization.service';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -31,6 +32,10 @@ describe('UsersService', () => {
     remove: jest.fn(),
   };
 
+  const mockOwnershipAuthorizationService = {
+    assertCanManageOwnResourceOrThrow: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [LoggerModule],
@@ -47,6 +52,10 @@ describe('UsersService', () => {
         {
           provide: ActivityLogsService,
           useValue: mockActivityLogsService,
+        },
+        {
+          provide: OwnershipAuthorizationService,
+          useValue: mockOwnershipAuthorizationService,
         },
       ],
     }).compile();
