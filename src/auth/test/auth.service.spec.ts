@@ -51,6 +51,8 @@ describe('AuthService', () => {
   const mockPasswordResetToken = {
     create: jest.fn(),
     save: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
   };
 
   const mockMailerService = {
@@ -72,6 +74,8 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [LoggerModule],
       providers: [
@@ -130,13 +134,21 @@ describe('AuthService', () => {
     it('should successfully register a new user', async () => {
       mockUserRepository.findOne.mockResolvedValueOnce(null);
 
+      type SavedEntity = Record<string, unknown>;
+      const savedEntities: SavedEntity[] = [];
       mockUserRepository.manager.transaction.mockImplementation(
         async (callback: (manager: any) => Promise<void>) => {
           await callback({
-            create: jest.fn().mockReturnValue({
-              id: 'test-id',
+            create: jest
+              .fn()
+              .mockImplementation((_entity: unknown, data: SavedEntity) => ({
+                id: 'test-id',
+                ...data,
+              })),
+            save: jest.fn().mockImplementation((entity: SavedEntity) => {
+              savedEntities.push(entity);
+              return entity;
             }),
-            save: jest.fn().mockResolvedValue(true),
           });
           return true;
         },
@@ -160,6 +172,16 @@ describe('AuthService', () => {
         firstName: mockRegisterDto.firstName,
         lastName: mockRegisterDto.lastName,
       });
+
+      const savedUser = savedEntities.find(
+        (entity) => entity.email === mockRegisterDto.email,
+      ) as User | undefined;
+
+      expect(savedUser).toBeDefined();
+      expect(savedUser?.password).toMatch(/^\$2b\$/);
+      await expect(
+        bcrypt.compare(mockRegisterDto.password, savedUser!.password!),
+      ).resolves.toBe(true);
     });
 
     it('should throw ConflictException if user already exists', async () => {
@@ -253,6 +275,62 @@ describe('AuthService', () => {
       await expect(service.register(mockAuth0User)).rejects.toThrow(
         ConflictException,
       );
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should hash the new password with bcrypt before saving it', async () => {
+      type UserUpdatePayload = { password: string };
+      const updateUserMock = jest.fn<
+        Promise<void>,
+        [string, UserUpdatePayload]
+      >();
+      const tokenRepo = {
+        findOne: jest.fn().mockResolvedValue({
+          id: 'token-id',
+          userId: 'user-id',
+          expiresAt: new Date(Date.now() + 60_000),
+          used: false,
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+      };
+      const userRepo = {
+        update: updateUserMock.mockResolvedValue(undefined),
+      };
+
+      mockDataSource.transaction.mockImplementation(
+        async (callback: (manager: any) => Promise<unknown>) =>
+          callback({
+            getRepository: jest.fn().mockImplementation((entity) => {
+              if (entity === PasswordResetToken) {
+                return tokenRepo;
+              }
+
+              if (entity === User) {
+                return userRepo;
+              }
+
+              throw new Error('Unexpected repository request');
+            }),
+          }),
+      );
+
+      const result = await service.resetPassword({
+        token: 'raw-reset-token',
+        newPassword: 'NewPassword123!',
+        ip: '127.0.0.1',
+      });
+
+      expect(result).toEqual({ message: 'Password reset successfully' });
+      expect(userRepo.update).toHaveBeenCalledTimes(1);
+
+      const updatePayload = updateUserMock.mock.calls[0][1];
+      const { password: hashedPassword } = updatePayload;
+      expect(hashedPassword).toMatch(/^\$2b\$/);
+      await expect(
+        bcrypt.compare('NewPassword123!', hashedPassword),
+      ).resolves.toBe(true);
+      expect(tokenRepo.update).toHaveBeenCalledWith('token-id', { used: true });
     });
   });
 });
