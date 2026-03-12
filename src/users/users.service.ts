@@ -49,7 +49,7 @@ export class UsersService {
         queryRunner.manager.getRepository(SubscriptionDetail);
       const roleRepository = queryRunner.manager.getRepository(Role);
 
-      let user = this.usersRepository.create({ ...userData, id: userId });
+      let user = userRepository.create({ ...userData, id: userId });
 
       if (preference) {
         user.preference = await preferenceRepository.save({
