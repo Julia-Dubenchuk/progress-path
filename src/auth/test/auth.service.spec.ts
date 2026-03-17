@@ -141,9 +141,10 @@ describe('AuthService', () => {
           await callback({
             create: jest
               .fn()
-              .mockImplementation((_entity: unknown, data: SavedEntity) => ({
+              .mockImplementation((entity: unknown, data: SavedEntity) => ({
                 id: 'test-id',
                 ...data,
+                constructor: entity,
               })),
             save: jest.fn().mockImplementation((entity: SavedEntity) => {
               savedEntities.push(entity);
@@ -177,6 +178,12 @@ describe('AuthService', () => {
         (entity) => entity.email === mockRegisterDto.email,
       ) as User | undefined;
 
+      expect(savedEntities.map((entity) => entity.constructor)).toEqual([
+        SubscriptionDetail,
+        UserPreference,
+        User,
+        UserProfile,
+      ]);
       expect(savedUser).toBeDefined();
       expect(savedUser?.password).toMatch(/^\$2b\$/);
       await expect(
@@ -241,20 +248,37 @@ describe('AuthService', () => {
     };
 
     it('should successfully register a new Auth0 user', async () => {
-      mockUserRepository.findOne.mockResolvedValue(null);
-      mockUserRepository.create.mockReturnValue({
-        id: 'test-id',
-        email: mockAuth0User.email,
-        firstName: mockAuth0User.firstName,
-        lastName: mockAuth0User.lastName,
-      });
-      mockUserRepository.save.mockResolvedValue({
-        id: 'test-id',
-        email: mockAuth0User.email,
-        firstName: mockAuth0User.firstName,
-        lastName: mockAuth0User.lastName,
-      });
-
+      mockUserRepository.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({
+          id: 'test-id',
+          email: mockAuth0User.email,
+          username: mockAuth0User.email.split('@')[0],
+          firstName: mockAuth0User.firstName,
+          lastName: mockAuth0User.lastName,
+        });
+      type SavedEntity = Record<string, unknown>;
+      const savedEntities: SavedEntity[] = [];
+      mockUserRepository.manager.transaction.mockImplementation(
+        async (callback: (manager: any) => Promise<void>) => {
+          await callback({
+            create: jest
+              .fn()
+              .mockImplementation((entity: unknown, data: SavedEntity) => {
+                return {
+                  id: 'test-id',
+                  ...data,
+                  constructor: entity,
+                };
+              }),
+            save: jest.fn().mockImplementation((entity: SavedEntity) => {
+              savedEntities.push(entity);
+              return entity;
+            }),
+          });
+          return true;
+        },
+      );
       const result = await service.register(mockAuth0User);
 
       expect(result).toHaveProperty('access_token');
@@ -264,6 +288,12 @@ describe('AuthService', () => {
         firstName: mockAuth0User.firstName,
         lastName: mockAuth0User.lastName,
       });
+      expect(savedEntities.map((entity) => entity.constructor)).toEqual([
+        SubscriptionDetail,
+        UserPreference,
+        User,
+        UserProfile,
+      ]);
     });
 
     it('should throw ConflictException if Auth0 user already exists', async () => {
