@@ -4,9 +4,10 @@ import { Repository } from 'typeorm';
 import { CreateSubscriptionDetailDto } from './dto/create-subscription-detail.dto';
 import { SubscriptionDetail } from './entities/subscription-detail.entity';
 import { LoggerService } from '../common/logger/logger.service';
-import { IUpdateSubscriptionDetail } from './types';
 import { User } from '../users/entities/user.entity';
 import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
+import { IUpdateOperation } from '../types/update-operation.type';
+import { UpdateSubscriptionDetailDto } from './dto/update-subscription-detail.dto';
 
 @Injectable()
 export class SubscriptionDetailsService {
@@ -81,7 +82,10 @@ export class SubscriptionDetailsService {
     currentUser,
     userId,
     updateSubscriptionDetailDto,
-  }: IUpdateSubscriptionDetail): Promise<SubscriptionDetail> {
+  }: IUpdateOperation<
+    UpdateSubscriptionDetailDto,
+    'updateSubscriptionDetailDto'
+  >): Promise<SubscriptionDetail> {
     this.logger.log(`Updating subscription detail for user ${userId}`, {
       context: SubscriptionDetailsService.name,
       meta: { updateSubscriptionDetailDto, userId },

@@ -10,8 +10,9 @@ import { UserProfile } from './entities/user-profile.entity';
 import { Repository } from 'typeorm';
 import { LoggerService } from '../common/logger/logger.service';
 import { User } from '../users/entities/user.entity';
-import { IUpdateUserProfile, IUpdateProfilePicture } from './types';
 import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
+import { IUpdateOperation } from '../types/update-operation.type';
+import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
 @Injectable()
 export class UserProfilesService {
@@ -77,7 +78,10 @@ export class UserProfilesService {
     currentUser,
     userId,
     updateUserProfileDto,
-  }: IUpdateUserProfile): Promise<UserProfile> {
+  }: IUpdateOperation<
+    UpdateUserProfileDto,
+    'updateUserProfileDto'
+  >): Promise<UserProfile> {
     try {
       this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
         currentUser,
@@ -153,7 +157,7 @@ export class UserProfilesService {
     currentUser,
     userId,
     buffer,
-  }: IUpdateProfilePicture) {
+  }: IUpdateOperation<Buffer, 'buffer'>) {
     try {
       this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
         currentUser,

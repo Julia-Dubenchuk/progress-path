@@ -15,8 +15,10 @@ import { Role } from '../roles/entities/role.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { UserPreference } from '../user-preferences/entities/user-preference.entity';
 import { SubscriptionDetail } from '../subscription-details/entities/subscription-detail.entity';
-import { IDeleteUserResponse, IUpdateUser } from './types';
+import { IDeleteUserResponse } from './types';
 import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
+import { IUpdateOperation } from '../types/update-operation.type';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -125,22 +127,26 @@ export class UsersService {
     return user;
   }
 
-  async update({ currentUser, id, updateUserDto }: IUpdateUser): Promise<User> {
+  async update({
+    currentUser,
+    userId,
+    updateUserDto,
+  }: IUpdateOperation<UpdateUserDto, 'updateUserDto'>): Promise<User> {
     this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
       currentUser,
-      targetUserId: id,
+      targetUserId: userId,
       action: 'update user',
       context: UsersService.name,
       forbiddenMessage: 'You are not allowed to update this profile',
     });
 
     const user = await this.usersRepository.findOne({
-      where: { id },
+      where: { id: userId },
       relations: ['roles'],
     });
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundException(`User with id ${userId} not found`);
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -167,15 +173,15 @@ export class UsersService {
       }
 
       if (profile) {
-        await profileRepository.update(id, profile);
+        await profileRepository.update(userId, profile);
       }
 
       if (preference) {
-        await preferenceRepository.update(id, preference);
+        await preferenceRepository.update(userId, preference);
       }
 
       if (subscriptionDetail) {
-        await subscriptionRepository.update(id, subscriptionDetail);
+        await subscriptionRepository.update(userId, subscriptionDetail);
       }
 
       const updatedUser = await userRepository.save(user);
@@ -184,19 +190,21 @@ export class UsersService {
 
       void this.activityLogsService.create({
         action: 'USER_UPDATED',
-        description: `User ${id} updated`,
+        description: `User ${userId} updated`,
         success: true,
       });
 
-      this.logger.log(`User ${id} updated successfully`, { meta: { id } });
+      this.logger.log(`User ${userId} updated successfully`, {
+        meta: { id: userId },
+      });
       return updatedUser;
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Failed to update user ${id}`, { meta: error });
+      this.logger.error(`Failed to update user ${userId}`, { meta: error });
       void this.activityLogsService.create({
         action: 'USER_UPDATE_FAILED',
-        description: `User update failed for ${id}`,
+        description: `User update failed for ${userId}`,
         success: false,
       });
 

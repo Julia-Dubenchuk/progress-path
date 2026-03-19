@@ -4,9 +4,10 @@ import { Repository } from 'typeorm';
 import { CreateUserPreferenceDto } from './dto/create-user-preference.dto';
 import { UserPreference } from './entities/user-preference.entity';
 import { LoggerService } from '../common/logger/logger.service';
-import { IUpdateUserPreference } from './types';
 import { User } from '../users/entities/user.entity';
 import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
+import { IUpdateOperation } from '../types/update-operation.type';
+import { UpdateUserPreferenceDto } from './dto/update-user-preference.dto';
 
 @Injectable()
 export class UserPreferencesService {
@@ -78,7 +79,10 @@ export class UserPreferencesService {
     currentUser,
     userId,
     updateUserPreferenceDto,
-  }: IUpdateUserPreference): Promise<UserPreference> {
+  }: IUpdateOperation<
+    UpdateUserPreferenceDto,
+    'updateUserPreferenceDto'
+  >): Promise<UserPreference> {
     this.logger.log(`Updating preferences for user ${userId}`, {
       context: UserPreferencesService.name,
       meta: { updateUserPreferenceDto, userId },
