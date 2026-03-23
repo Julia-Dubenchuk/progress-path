@@ -172,22 +172,26 @@ export default class InitialDataSeeder implements Seeder {
 
       if (existingUser) continue;
 
-      await profileRepository.save(userProfile);
       await preferenceRepository.save(userPreference);
       await subscriptionRepository.save(subscriptionDetail);
 
       user.roles = [role];
 
-      // Connect relationships
-      user.profile = userProfile;
+      // Persist the owning-side shared-primary-key relations first.
       user.preference = userPreference;
       user.subscriptionDetail = subscriptionDetail;
 
-      await userRepository.save(user);
+      const savedUser = await userRepository.save(user);
+
+      // UserProfile owns the FK to users, so it must be inserted after the user exists.
+      userProfile.user = savedUser;
+      await profileRepository.save(userProfile);
+
+      savedUser.profile = userProfile;
       await this.createActivityLogs(
         activityLogRepository,
         activityLogFactory,
-        user,
+        savedUser,
       );
     }
   }

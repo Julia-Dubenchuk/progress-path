@@ -1,5 +1,4 @@
 import {
-  ForbiddenException,
   HttpException,
   Injectable,
   InternalServerErrorException,
@@ -12,11 +11,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
 import { LoggerService } from '../common/logger/logger.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
-import { Role, RoleName } from '../roles/entities/role.entity';
+import { Role } from '../roles/entities/role.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { UserPreference } from '../user-preferences/entities/user-preference.entity';
 import { SubscriptionDetail } from '../subscription-details/entities/subscription-detail.entity';
-import { IDeleteUserResponse, IUpdateUser } from './types';
+import { IDeleteUserResponse } from './types';
+import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
+import { IUpdateOperation } from '../types/update-operation.type';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -26,6 +28,7 @@ export class UsersService {
     private readonly logger: LoggerService,
     private readonly activityLogsService: ActivityLogsService,
     private readonly dataSource: DataSource,
+    private readonly ownershipAuthorizationService: OwnershipAuthorizationService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -48,7 +51,7 @@ export class UsersService {
         queryRunner.manager.getRepository(SubscriptionDetail);
       const roleRepository = queryRunner.manager.getRepository(Role);
 
-      let user = this.usersRepository.create({ ...userData, id: userId });
+      let user = userRepository.create({ ...userData, id: userId });
 
       if (preference) {
         user.preference = await preferenceRepository.save({
@@ -124,26 +127,26 @@ export class UsersService {
     return user;
   }
 
-  async update({ currentUser, id, updateUserDto }: IUpdateUser): Promise<User> {
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
+  async update({
+    currentUser,
+    userId,
+    updateUserDto,
+  }: IUpdateOperation<UpdateUserDto, 'updateUserDto'>): Promise<User> {
+    this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+      currentUser,
+      targetUserId: userId,
+      action: 'update user',
+      context: UsersService.name,
+      forbiddenMessage: 'You are not allowed to update this profile',
+    });
 
-    if (!isAdmin && currentUser.id !== id) {
-      this.logger.warn(
-        `User ${currentUser.id} tried to update user ${id} without permission`,
-        {
-          context: UsersService.name,
-          meta: {
-            currentUserId: currentUser.id,
-            targetUserId: id,
-          },
-        },
-      );
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['roles'],
+    });
 
-      throw new ForbiddenException(
-        'You are not allowed to update this profile',
-      );
+    if (!user) {
+      throw new NotFoundException(`User with id ${userId} not found`);
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -163,15 +166,6 @@ export class UsersService {
         queryRunner.manager.getRepository(SubscriptionDetail);
       const roleRepository = queryRunner.manager.getRepository(Role);
 
-      const user = await userRepository.findOne({
-        where: { id },
-        relations: ['roles'],
-      });
-
-      if (!user) {
-        throw new NotFoundException(`User with id ${id} not found`);
-      }
-
       userRepository.merge(user, userFields);
 
       if (roles) {
@@ -179,15 +173,15 @@ export class UsersService {
       }
 
       if (profile) {
-        await profileRepository.update(id, profile);
+        await profileRepository.update(userId, profile);
       }
 
       if (preference) {
-        await preferenceRepository.update(id, preference);
+        await preferenceRepository.update(userId, preference);
       }
 
       if (subscriptionDetail) {
-        await subscriptionRepository.update(id, subscriptionDetail);
+        await subscriptionRepository.update(userId, subscriptionDetail);
       }
 
       const updatedUser = await userRepository.save(user);
@@ -196,36 +190,40 @@ export class UsersService {
 
       void this.activityLogsService.create({
         action: 'USER_UPDATED',
-        description: `User ${id} updated`,
+        description: `User ${userId} updated`,
         success: true,
       });
 
-      this.logger.log(`User ${id} updated successfully`, { meta: { id } });
+      this.logger.log(`User ${userId} updated successfully`, {
+        meta: { id: userId },
+      });
       return updatedUser;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to update user ${id}`, { meta: error });
 
+      this.logger.error(`Failed to update user ${userId}`, { meta: error });
       void this.activityLogsService.create({
         action: 'USER_UPDATE_FAILED',
-        description: `User update failed for ${id}`,
+        description: `User update failed for ${userId}`,
         success: false,
       });
 
-      throw new InternalServerErrorException('Failed to update user');
+      throw error instanceof HttpException
+        ? error
+        : new InternalServerErrorException('Failed to update user');
     } finally {
       await queryRunner.release();
     }
   }
 
   async remove(currentUser: User, id: string): Promise<IDeleteUserResponse> {
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
-
-    if (!isAdmin && currentUser.id !== id) {
-      throw new ForbiddenException('You are not allowed to delete this user');
-    }
+    this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+      currentUser,
+      targetUserId: id,
+      action: 'delete user',
+      context: UsersService.name,
+      forbiddenMessage: 'You are not allowed to delete this user',
+    });
 
     const queryRunner = this.dataSource.createQueryRunner();
 

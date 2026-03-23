@@ -1,11 +1,13 @@
 import { setSeederFactory } from 'typeorm-extension';
+import { faker } from '@faker-js/faker/locale/en';
 import {
   ActivityLog,
   ActivitySource,
 } from '../../activity-logs/entities/activity-log.entity';
 
-export default setSeederFactory(ActivityLog, (faker) => {
+export default setSeederFactory(ActivityLog, () => {
   const activityLog = new ActivityLog();
+  const fallbackEmail = `${faker.string.alphanumeric(10).toLowerCase()}@example.com`;
 
   const actions = [
     'LOGIN',
@@ -28,7 +30,7 @@ export default setSeederFactory(ActivityLog, (faker) => {
   switch (activityLog.action) {
     case 'FORGOT_PASSWORD_REQUEST':
       activityLog.meta = {
-        emailRequested: faker.internet.email(),
+        emailRequested: fallbackEmail,
         reason: faker.helpers.arrayElement([
           'user_initiated',
           'admin_initiated',
