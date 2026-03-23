@@ -3,6 +3,7 @@ import { UserPreferencesService } from '../user-preferences.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserPreference } from '../entities/user-preference.entity';
 import { LoggerModule } from '../../common/logger/logger.module';
+import { OwnershipAuthorizationService } from '../../common/authorization/ownership-authorization.service';
 
 describe('UserPreferencesService', () => {
   let service: UserPreferencesService;
@@ -16,6 +17,10 @@ describe('UserPreferencesService', () => {
     delete: jest.fn(),
   };
 
+  const mockOwnershipAuthorizationService = {
+    assertCanManageOwnResourceOrThrow: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [LoggerModule],
@@ -24,6 +29,10 @@ describe('UserPreferencesService', () => {
         {
           provide: getRepositoryToken(UserPreference),
           useValue: mockUserPreferenceRepository,
+        },
+        {
+          provide: OwnershipAuthorizationService,
+          useValue: mockOwnershipAuthorizationService,
         },
       ],
     }).compile();

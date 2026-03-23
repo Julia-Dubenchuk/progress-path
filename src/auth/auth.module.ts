@@ -15,8 +15,6 @@ import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailerService } from '../common/mailer/mailer.service';
 import { MailerModule } from '../common/mailer/mailer.module';
 import { UsersModule } from '../users/users.module';
-import { UsersService } from '../users/users.service';
-import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 import { UserPreferencesModule } from '../user-preferences/user-preferences.module';
 import { SubscriptionDetailsModule } from '../subscription-details/subscription-details.module';
@@ -55,8 +53,6 @@ import { JwtStrategy } from './jwt.strategy';
     PoliciesGuard,
     CaslAbilityFactory,
     MailerService,
-    UsersService,
-    ActivityLogsService,
   ],
   exports: [
     AuthService,

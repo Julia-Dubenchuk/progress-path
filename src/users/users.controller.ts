@@ -21,6 +21,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from './entities/user.entity';
+import { IDeleteUserResponse } from './types';
 
 @ApiTags('users')
 @Controller('users')
@@ -70,7 +71,7 @@ export class UsersController {
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return this.usersService.update({ currentUser, id, updateUserDto });
+    return this.usersService.update({ currentUser, userId: id, updateUserDto });
   }
 
   @UseGuards(JwtAuthGuard)
@@ -80,9 +81,18 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'The user has been successfully deleted.',
+    schema: {
+      example: {
+        message:
+          'User 123e4567-e89b-12d3-a456-426614174000 deleted successfully',
+      },
+    },
   })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  remove(@CurrentUser() currentUser: User, @Param('id') id: string) {
+  remove(
+    @CurrentUser() currentUser: User,
+    @Param('id') id: string,
+  ): Promise<IDeleteUserResponse> {
     return this.usersService.remove(currentUser, id);
   }
 }

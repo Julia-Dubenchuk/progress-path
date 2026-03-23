@@ -8,6 +8,7 @@ import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 import { UserPreferencesModule } from '../user-preferences/user-preferences.module';
 import { SubscriptionDetailsModule } from '../subscription-details/subscription-details.module';
 import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
+import { AuthorizationModule } from '../common/authorization/authorization.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ActivityLogsModule } from '../activity-logs/activity-logs.module';
     UserPreferencesModule,
     SubscriptionDetailsModule,
     ActivityLogsModule,
+    AuthorizationModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],

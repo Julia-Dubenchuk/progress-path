@@ -35,12 +35,6 @@ export class AuthService {
     private jwtService: JwtService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(UserProfile)
-    private userProfileRepository: Repository<UserProfile>,
-    @InjectRepository(UserPreference)
-    private userPreferenceRepository: Repository<UserPreference>,
-    @InjectRepository(SubscriptionDetail)
-    private subscriptionDetailRepository: Repository<SubscriptionDetail>,
     private readonly logger: LoggerService,
     @InjectRepository(PasswordResetToken)
     private readonly tokenRepository: Repository<PasswordResetToken>,
@@ -69,36 +63,52 @@ export class AuthService {
 
     const newUserId = uuidv4();
 
-    // Create associated entities
-    const userProfile = this.userProfileRepository.create({
-      id: newUserId,
-      profilePicture: user.picture as unknown as Buffer<ArrayBufferLike>,
+    await this.userRepository.manager.transaction(
+      async (transactionalEntityManager) => {
+        const subscriptionDetail = transactionalEntityManager.create(
+          SubscriptionDetail,
+          {
+            id: newUserId,
+            type: SubscriptionType.FREE,
+          },
+        );
+        await transactionalEntityManager.save(subscriptionDetail);
+
+        const userPreference = transactionalEntityManager.create(
+          UserPreference,
+          {
+            id: newUserId,
+          },
+        );
+        await transactionalEntityManager.save(userPreference);
+
+        const newUser = transactionalEntityManager.create(User, {
+          id: newUserId,
+          email: user.email,
+          username: user.nickname ?? user.email.split('@')[0],
+          firstName: user.firstName,
+          lastName: user.lastName,
+          googleId: user.id,
+        });
+        await transactionalEntityManager.save(newUser);
+
+        const userProfile = transactionalEntityManager.create(UserProfile, {
+          id: newUserId,
+          profilePicture: user.picture as unknown as Buffer<ArrayBufferLike>,
+        });
+        await transactionalEntityManager.save(userProfile);
+      },
+    );
+
+    const newUser = await this.userRepository.findOne({
+      where: { id: newUserId },
     });
 
-    const userPreference = this.userPreferenceRepository.create({
-      id: newUserId,
-    });
-
-    const subscriptionDetail = this.subscriptionDetailRepository.create({
-      id: newUserId,
-      type: SubscriptionType.FREE,
-    });
-
-    // Create new user
-    const newUser = this.userRepository.create({
-      id: newUserId,
-      email: user.email,
-      username: user.nickname ?? user.email.split('@')[0],
-      firstName: user.firstName,
-      lastName: user.lastName,
-      googleId: user.id,
-    });
-
-    // Save all entities
-    await this.userProfileRepository.save(userProfile);
-    await this.userPreferenceRepository.save(userPreference);
-    await this.subscriptionDetailRepository.save(subscriptionDetail);
-    await this.userRepository.save(newUser);
+    if (!newUser) {
+      throw new InternalServerErrorException(
+        'User record missing after OAuth registration',
+      );
+    }
 
     this.logger.log('Registration successful via OAuth', {
       context: AuthService.name,
@@ -150,12 +160,6 @@ export class AuthService {
           );
           await transactionalEntityManager.save(subscriptionDetail);
 
-          // Create and save user profile
-          const userProfile = transactionalEntityManager.create(UserProfile, {
-            id: entityId,
-          });
-          await transactionalEntityManager.save(userProfile);
-
           // Create and save user preference
           const userPreference = transactionalEntityManager.create(
             UserPreference,
@@ -176,6 +180,12 @@ export class AuthService {
           });
 
           await transactionalEntityManager.save(newUser);
+
+          // UserProfile references users.id, so it must be inserted last.
+          const userProfile = transactionalEntityManager.create(UserProfile, {
+            id: entityId,
+          });
+          await transactionalEntityManager.save(userProfile);
         },
       );
 

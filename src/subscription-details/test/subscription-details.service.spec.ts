@@ -3,6 +3,7 @@ import { SubscriptionDetailsService } from '../subscription-details.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { SubscriptionDetail } from '../entities/subscription-detail.entity';
 import { LoggerModule } from '../../common/logger/logger.module';
+import { OwnershipAuthorizationService } from '../../common/authorization/ownership-authorization.service';
 
 describe('SubscriptionDetailsService', () => {
   let service: SubscriptionDetailsService;
@@ -16,6 +17,10 @@ describe('SubscriptionDetailsService', () => {
     delete: jest.fn(),
   };
 
+  const mockOwnershipAuthorizationService = {
+    assertCanManageOwnResourceOrThrow: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [LoggerModule],
@@ -24,6 +29,10 @@ describe('SubscriptionDetailsService', () => {
         {
           provide: getRepositoryToken(SubscriptionDetail),
           useValue: mockSubscriptionDetailRepository,
+        },
+        {
+          provide: OwnershipAuthorizationService,
+          useValue: mockOwnershipAuthorizationService,
         },
       ],
     }).compile();

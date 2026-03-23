@@ -1,5 +1,4 @@
 import {
-  ForbiddenException,
   HttpException,
   Injectable,
   InternalServerErrorException,
@@ -11,8 +10,9 @@ import { UserProfile } from './entities/user-profile.entity';
 import { Repository } from 'typeorm';
 import { LoggerService } from '../common/logger/logger.service';
 import { User } from '../users/entities/user.entity';
-import { RoleName } from './../roles/entities/role.entity';
-import { IUpdateUserProfile, IUpdateProfilePicture } from './types';
+import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
+import { IUpdateOperation } from '../types/update-operation.type';
+import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
 @Injectable()
 export class UserProfilesService {
@@ -20,6 +20,7 @@ export class UserProfilesService {
     @InjectRepository(UserProfile)
     private readonly userProfileRepository: Repository<UserProfile>,
     private readonly logger: LoggerService,
+    private readonly ownershipAuthorizationService: OwnershipAuthorizationService,
   ) {}
 
   async create(
@@ -77,28 +78,18 @@ export class UserProfilesService {
     currentUser,
     userId,
     updateUserProfileDto,
-  }: IUpdateUserProfile): Promise<UserProfile> {
+  }: IUpdateOperation<
+    UpdateUserProfileDto,
+    'updateUserProfileDto'
+  >): Promise<UserProfile> {
     try {
-      const isAdmin = currentUser.roles?.some(
-        (role) => role.name === RoleName.ADMIN,
-      );
-
-      if (!isAdmin && currentUser.id !== userId) {
-        this.logger.warn(
-          `User ${currentUser.id} tried to update profile ${userId} without permission`,
-          {
-            context: UserProfilesService.name,
-            meta: {
-              currentUserId: currentUser.id,
-              targetUserId: userId,
-            },
-          },
-        );
-
-        throw new ForbiddenException(
-          'You are not allowed to update this profile',
-        );
-      }
+      this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+        currentUser,
+        targetUserId: userId,
+        action: 'update profile',
+        context: UserProfilesService.name,
+        forbiddenMessage: 'You are not allowed to update this profile',
+      });
 
       const profile = await this.findOne(userId);
 
@@ -134,15 +125,13 @@ export class UserProfilesService {
     currentUser: User,
     userId: string,
   ): Promise<{ message: string }> {
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
-
-    if (!isAdmin && currentUser.id !== userId) {
-      throw new ForbiddenException(
-        'You are not allowed to delete this profile',
-      );
-    }
+    this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+      currentUser,
+      targetUserId: userId,
+      action: 'delete profile',
+      context: UserProfilesService.name,
+      forbiddenMessage: 'You are not allowed to delete this profile',
+    });
 
     const result = await this.userProfileRepository.delete(userId);
 
@@ -168,17 +157,16 @@ export class UserProfilesService {
     currentUser,
     userId,
     buffer,
-  }: IUpdateProfilePicture) {
+  }: IUpdateOperation<Buffer, 'buffer'>) {
     try {
-      const isAdmin = currentUser.roles?.some(
-        (role) => role.name === RoleName.ADMIN,
-      );
-
-      if (!isAdmin && currentUser.id !== userId) {
-        throw new ForbiddenException(
+      this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+        currentUser,
+        targetUserId: userId,
+        action: 'update profile picture',
+        context: UserProfilesService.name,
+        forbiddenMessage:
           'You are not allowed to update a picture for this profile',
-        );
-      }
+      });
 
       const profile = await this.findOne(userId);
 

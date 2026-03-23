@@ -1,16 +1,13 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserPreferenceDto } from './dto/create-user-preference.dto';
 import { UserPreference } from './entities/user-preference.entity';
 import { LoggerService } from '../common/logger/logger.service';
-import { IUpdateUserPreference } from './types';
-import { RoleName } from '../roles/entities/role.entity';
 import { User } from '../users/entities/user.entity';
+import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
+import { IUpdateOperation } from '../types/update-operation.type';
+import { UpdateUserPreferenceDto } from './dto/update-user-preference.dto';
 
 @Injectable()
 export class UserPreferencesService {
@@ -18,6 +15,7 @@ export class UserPreferencesService {
     @InjectRepository(UserPreference)
     private readonly userPreferenceRepository: Repository<UserPreference>,
     private readonly logger: LoggerService,
+    private readonly ownershipAuthorizationService: OwnershipAuthorizationService,
   ) {}
 
   async create(
@@ -81,32 +79,22 @@ export class UserPreferencesService {
     currentUser,
     userId,
     updateUserPreferenceDto,
-  }: IUpdateUserPreference): Promise<UserPreference> {
+  }: IUpdateOperation<
+    UpdateUserPreferenceDto,
+    'updateUserPreferenceDto'
+  >): Promise<UserPreference> {
     this.logger.log(`Updating preferences for user ${userId}`, {
       context: UserPreferencesService.name,
       meta: { updateUserPreferenceDto, userId },
     });
 
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
-
-    if (!isAdmin && currentUser.id !== userId) {
-      this.logger.warn(
-        `User ${currentUser.id} tried to update preferences ${userId} without permission`,
-        {
-          context: UserPreferencesService.name,
-          meta: {
-            currentUserId: currentUser.id,
-            targetUserId: userId,
-          },
-        },
-      );
-
-      throw new ForbiddenException(
-        "You are not allowed to update this user's preference",
-      );
-    }
+    this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+      currentUser,
+      targetUserId: userId,
+      action: 'update preferences',
+      context: UserPreferencesService.name,
+      forbiddenMessage: "You are not allowed to update this user's preference",
+    });
 
     const preference = await this.findOne(userId);
 
@@ -134,15 +122,13 @@ export class UserPreferencesService {
       meta: { userId },
     });
 
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
-
-    if (!isAdmin && currentUser.id !== userId) {
-      throw new ForbiddenException(
-        'You are not allowed to delete this preferences',
-      );
-    }
+    this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
+      currentUser,
+      targetUserId: userId,
+      action: 'delete preferences',
+      context: UserPreferencesService.name,
+      forbiddenMessage: 'You are not allowed to delete this preferences',
+    });
 
     const result = await this.userPreferenceRepository.delete(userId);
 
