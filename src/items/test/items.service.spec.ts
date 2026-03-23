@@ -11,7 +11,7 @@ describe('ItemsService', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
-    update: jest.fn(),
+    merge: jest.fn(),
     delete: jest.fn(),
   };
 

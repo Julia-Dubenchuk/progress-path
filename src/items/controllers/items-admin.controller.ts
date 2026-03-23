@@ -16,10 +16,6 @@ import { CheckPolicies } from '../../auth/decorators/check-policies.decorator';
 import { Action } from '../../permissions/entities/permission.entity';
 import { RoleName } from '../../roles/entities/role.entity';
 import { AppAbility } from '../../auth/casl/casl-ability.factory';
-import {
-  CurrentUser,
-  JwtPayload,
-} from '../../auth/decorators/current-user.decorator';
 import { ActionOnResource } from '../../auth/decorators/action-on-resource.decorator';
 
 @Controller('admin/items')
@@ -29,11 +25,8 @@ export class ItemsAdminController {
   // Using role-based access control
   @Post()
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  create(
-    @Body() createItemDto: CreateItemDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.itemsService.create(createItemDto, user.sub);
+  create(@Body() createItemDto: CreateItemDto) {
+    return this.itemsService.create(createItemDto);
   }
 
   // Using permission-based access control

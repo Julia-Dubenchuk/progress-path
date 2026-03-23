@@ -1,5 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
+import { STATUS } from '../entities/item.entity';
 
 export class CreateItemDto {
   @ApiProperty({
@@ -20,10 +31,35 @@ export class CreateItemDto {
   description?: string;
 
   @ApiProperty({
-    description: 'Whether the item is completed',
-    example: false,
-    default: false,
+    description: 'Current status of the item',
+    enum: STATUS,
+    example: STATUS.PLANNED,
+  })
+  @IsEnum(STATUS)
+  status: STATUS;
+
+  @ApiProperty({
+    description: 'Priority value from 1 (low) to 5 (high)',
+    example: 3,
+  })
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  priority: number;
+
+  @ApiProperty({
+    description: 'List id to which this item belongs',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsUUID()
+  listId: string;
+
+  @ApiProperty({
+    description: 'Optional target date',
+    example: '2026-03-10',
+    required: false,
   })
   @IsOptional()
-  isCompleted?: boolean;
+  @IsDateString()
+  targetDate?: Date;
 }
