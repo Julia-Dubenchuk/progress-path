@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -86,6 +88,10 @@ export class RolesService {
 
   async update(id: string, updateRoleDto: UpdateRoleDto): Promise<Role> {
     try {
+      if (!updateRoleDto || Object.keys(updateRoleDto).length === 0) {
+        throw new BadRequestException('Update payload is required');
+      }
+
       const role = await this.findOne(id);
       const { permissions, ...roleFields } = updateRoleDto;
 
@@ -112,7 +118,7 @@ export class RolesService {
         context: RolesService.name,
         meta: { error },
       });
-      throw error instanceof NotFoundException
+      throw error instanceof HttpException
         ? error
         : new InternalServerErrorException('Failed to update role');
     }
