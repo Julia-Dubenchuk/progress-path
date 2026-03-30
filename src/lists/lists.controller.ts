@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ListsService } from './lists.service';
 import { CreateListDto } from './dto/create-list.dto';
@@ -29,19 +30,22 @@ export class ListsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.listsService.findOne(id);
   }
 
   @Patch(':id')
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  update(@Param('id') id: string, @Body() updateListDto: UpdateListDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateListDto: UpdateListDto,
+  ) {
     return this.listsService.update(id, updateListDto);
   }
 
   @Delete(':id')
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.listsService.remove(id);
   }
 }

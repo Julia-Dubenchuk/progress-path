@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { MoodsService } from './moods.service';
 import { CreateMoodDto } from './dto/create-mood.dto';
@@ -29,19 +30,22 @@ export class MoodsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.moodsService.findOne(id);
   }
 
   @Patch(':id')
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  update(@Param('id') id: string, @Body() updateMoodDto: UpdateMoodDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateMoodDto: UpdateMoodDto,
+  ) {
     return this.moodsService.update(id, updateMoodDto);
   }
 
   @Delete(':id')
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.moodsService.remove(id);
   }
 }

@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -48,7 +49,7 @@ export class ItemsController {
   @ApiOperation({ summary: 'Get an item by id' })
   @ApiParam({ name: 'id', description: 'Item ID' })
   @ApiResponse({ status: 200, description: 'Return the item.' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.itemsService.findOne(id);
   }
 
@@ -61,7 +62,10 @@ export class ItemsController {
     description: 'The item has been successfully updated.',
   })
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  update(@Param('id') id: string, @Body() updateItemDto: UpdateItemDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateItemDto: UpdateItemDto,
+  ) {
     return this.itemsService.update(id, updateItemDto);
   }
 
@@ -73,7 +77,7 @@ export class ItemsController {
     description: 'The item has been successfully deleted.',
   })
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.itemsService.remove(id);
   }
 }

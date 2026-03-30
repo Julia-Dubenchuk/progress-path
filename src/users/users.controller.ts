@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -52,7 +53,7 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'Return the user.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
   }
 
@@ -68,7 +69,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   update(
     @CurrentUser() currentUser: User,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.update({ currentUser, userId: id, updateUserDto });
@@ -91,7 +92,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found.' })
   remove(
     @CurrentUser() currentUser: User,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<IDeleteUserResponse> {
     return this.usersService.remove(currentUser, id);
   }
