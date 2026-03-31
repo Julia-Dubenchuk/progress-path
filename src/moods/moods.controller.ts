@@ -13,6 +13,10 @@ import { CreateMoodDto } from './dto/create-mood.dto';
 import { UpdateMoodDto } from './dto/update-mood.dto';
 import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
 import { RoleName } from '../roles/entities/role.entity';
+import {
+  CurrentUser,
+  JwtPayload,
+} from '../auth/decorators/current-user.decorator';
 
 @Controller('moods')
 export class MoodsController {
@@ -20,8 +24,11 @@ export class MoodsController {
 
   @Post()
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  create(@Body() createMoodDto: CreateMoodDto) {
-    return this.moodsService.create(createMoodDto);
+  create(
+    @Body() createMoodDto: CreateMoodDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.moodsService.create(createMoodDto, user.sub);
   }
 
   @Get()

@@ -12,8 +12,11 @@ export class ListsService {
     private readonly listRepository: Repository<List>,
   ) {}
 
-  async create(createListDto: CreateListDto): Promise<List> {
-    const list = this.listRepository.create(createListDto);
+  async create(createListDto: CreateListDto, userId: string): Promise<List> {
+    const list = this.listRepository.create({
+      ...createListDto,
+      userId,
+    });
     return this.listRepository.save(list);
   }
 

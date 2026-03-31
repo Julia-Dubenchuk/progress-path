@@ -13,6 +13,10 @@ import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
 import { RoleName } from '../roles/entities/role.entity';
+import {
+  CurrentUser,
+  JwtPayload,
+} from '../auth/decorators/current-user.decorator';
 
 @Controller('lists')
 export class ListsController {
@@ -20,8 +24,11 @@ export class ListsController {
 
   @Post()
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  create(@Body() createListDto: CreateListDto) {
-    return this.listsService.create(createListDto);
+  create(
+    @Body() createListDto: CreateListDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.listsService.create(createListDto, user.sub);
   }
 
   @Get()
