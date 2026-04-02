@@ -259,9 +259,9 @@ export class UsersService {
       }
 
       await profileRepository.delete(id);
-      await userRepository.delete(id);
       await preferenceRepository.delete(id);
       await subscriptionRepository.delete(id);
+      await userRepository.delete(id);
 
       await queryRunner.commitTransaction();
 
