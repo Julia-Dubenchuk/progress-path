@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import {
@@ -19,6 +20,7 @@ import { ItemsService } from './items.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleName } from '../roles/entities/role.entity';
 
 @ApiTags('items')
@@ -41,6 +43,7 @@ export class ItemsController {
   @Get()
   @ApiOperation({ summary: 'Get all items' })
   @ApiResponse({ status: 200, description: 'Return all items.' })
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.itemsService.findAll();
   }
@@ -49,6 +52,7 @@ export class ItemsController {
   @ApiOperation({ summary: 'Get an item by id' })
   @ApiParam({ name: 'id', description: 'Item ID' })
   @ApiResponse({ status: 200, description: 'Return the item.' })
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.itemsService.findOne(id);
   }

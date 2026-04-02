@@ -6,12 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { MoodsService } from './moods.service';
 import { CreateMoodDto } from './dto/create-mood.dto';
 import { UpdateMoodDto } from './dto/update-mood.dto';
 import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleName } from '../roles/entities/role.entity';
 import {
   CurrentUser,
@@ -32,11 +34,13 @@ export class MoodsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.moodsService.findAll();
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.moodsService.findOne(id);
   }

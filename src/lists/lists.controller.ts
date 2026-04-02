@@ -6,12 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ListsService } from './lists.service';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleName } from '../roles/entities/role.entity';
 import {
   CurrentUser,
@@ -32,11 +34,13 @@ export class ListsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.listsService.findAll();
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.listsService.findOne(id);
   }
