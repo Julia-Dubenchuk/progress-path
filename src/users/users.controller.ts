@@ -72,7 +72,11 @@ export class UsersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return this.usersService.update({ currentUser, userId: id, updateUserDto });
+    return this.usersService.update({
+      currentUser,
+      userId: id,
+      dto: updateUserDto,
+    });
   }
 
   @UseGuards(JwtAuthGuard)

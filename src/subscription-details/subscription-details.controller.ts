@@ -79,7 +79,7 @@ export class SubscriptionDetailsController {
     return this.subscriptionDetailsService.update({
       currentUser,
       userId,
-      updateSubscriptionDetailDto,
+      dto: updateSubscriptionDetailDto,
     });
   }
 
