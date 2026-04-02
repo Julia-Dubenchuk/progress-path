@@ -7,7 +7,7 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { STATUS } from '../../items/entities/item.entity';
+import { STATUS } from '../../common/enums/status.enum';
 
 export class CreateListDto {
   @ApiProperty({

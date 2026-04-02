@@ -10,7 +10,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { STATUS } from '../entities/item.entity';
+import { STATUS } from '../../common/enums/status.enum';
 
 export class CreateItemDto {
   @ApiProperty({

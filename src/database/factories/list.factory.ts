@@ -1,7 +1,7 @@
 import { setSeederFactory } from 'typeorm-extension';
 import { faker } from '@faker-js/faker/locale/en';
+import { STATUS } from '../../common/enums/status.enum';
 import { List } from '../../lists/entities/list.entity';
-import { STATUS } from '../../items/entities/item.entity';
 
 export default setSeederFactory(List, () => {
   const list = new List();

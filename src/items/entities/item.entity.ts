@@ -7,13 +7,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { STATUS } from '../../common/enums/status.enum';
 import { List } from '../../lists/entities/list.entity';
-
-export enum STATUS {
-  PLANNED = 'planned',
-  IN_PROGRESS = 'in progress',
-  COMPLETED = 'completed',
-}
 
 @Entity('items')
 export class Item {
