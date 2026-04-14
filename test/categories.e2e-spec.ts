@@ -10,6 +10,7 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as request from 'supertest';
+import { App } from 'supertest/types';
 import { CategoriesController } from '../src/categories/categories.controller';
 import { CategoriesService } from '../src/categories/categories.service';
 import { CategoryTitle } from '../src/categories/entities/category.entity';
@@ -83,7 +84,7 @@ class FakeJwtAuthGuard implements CanActivate {
 class CategoriesE2eTestModule {}
 
 describe('CategoriesController (e2e)', () => {
-  let app: INestApplication;
+  let app: INestApplication<App>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
