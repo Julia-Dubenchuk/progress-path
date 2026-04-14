@@ -12,8 +12,11 @@ export class MoodsService {
     private readonly moodRepository: Repository<Mood>,
   ) {}
 
-  async create(createMoodDto: CreateMoodDto): Promise<Mood> {
-    const mood = this.moodRepository.create(createMoodDto);
+  async create(createMoodDto: CreateMoodDto, userId: string): Promise<Mood> {
+    const mood = this.moodRepository.create({
+      ...createMoodDto,
+      userId,
+    });
     return this.moodRepository.save(mood);
   }
 

@@ -81,11 +81,8 @@ export class SubscriptionDetailsService {
   async update({
     currentUser,
     userId,
-    updateSubscriptionDetailDto,
-  }: IUpdateOperation<
-    UpdateSubscriptionDetailDto,
-    'updateSubscriptionDetailDto'
-  >): Promise<SubscriptionDetail> {
+    dto: updateSubscriptionDetailDto,
+  }: IUpdateOperation<UpdateSubscriptionDetailDto>): Promise<SubscriptionDetail> {
     this.logger.log(`Updating subscription detail for user ${userId}`, {
       context: SubscriptionDetailsService.name,
       meta: { updateSubscriptionDetailDto, userId },

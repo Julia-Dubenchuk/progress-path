@@ -1,5 +1,6 @@
 import { setSeederFactory } from 'typeorm-extension';
-import { Item, STATUS } from '../../items/entities/item.entity';
+import { STATUS } from '../../common/enums/status.enum';
+import { Item } from '../../items/entities/item.entity';
 
 export default setSeederFactory(Item, (faker) => {
   const item = new Item();
