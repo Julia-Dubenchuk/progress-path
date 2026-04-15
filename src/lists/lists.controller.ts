@@ -8,9 +8,12 @@ import {
   Delete,
   UseGuards,
   ParseUUIDPipe,
+  Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ListsService } from './lists.service';
 import { CreateListDto } from './dto/create-list.dto';
+import { ListPaginationQueryDto } from './dto/list-pagination-query.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -35,8 +38,14 @@ export class ListsController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.listsService.findAll();
+  findAll(
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    paginationQuery: ListPaginationQueryDto,
+  ) {
+    return this.listsService.findAll(
+      paginationQuery.page,
+      paginationQuery.limit,
+    );
   }
 
   @Get(':id')

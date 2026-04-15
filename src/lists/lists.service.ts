@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateListDto } from './dto/create-list.dto';
+import { PaginatedListsResponseDto } from './dto/paginated-lists-response.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { List } from './entities/list.entity';
 
@@ -20,8 +21,25 @@ export class ListsService {
     return this.listRepository.save(list);
   }
 
-  findAll(): Promise<List[]> {
-    return this.listRepository.find();
+  async findAll(page = 1, limit = 10): Promise<PaginatedListsResponseDto> {
+    const [data, total] = await this.listRepository.findAndCount({
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
   }
 
   async findOne(id: string): Promise<List> {
