@@ -7,6 +7,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { User } from '../../users/entities/user.entity';
 import { STATUS } from '../../common/enums/status.enum';
 import { RoleName } from '../../roles/entities/role.entity';
+import { List } from '../../lists/entities/list.entity';
 
 describe('ItemsController', () => {
   let controller: ItemsController;
@@ -31,6 +32,7 @@ describe('ItemsController', () => {
           provide: getRepositoryToken(Item),
           useValue: mockItemRepository,
         },
+        { provide: getRepositoryToken(List), useValue: {} },
         { provide: getRepositoryToken(User), useValue: {} },
       ],
     }).compile();

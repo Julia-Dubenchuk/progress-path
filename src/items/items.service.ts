@@ -11,18 +11,24 @@ import { UpdateItemStatusDto } from './dto/update-item-status.dto';
 import { Item } from './entities/item.entity';
 import { User } from '../users/entities/user.entity';
 import { RoleName } from '../roles/entities/role.entity';
+import { List } from '../lists/entities/list.entity';
 
 @Injectable()
 export class ItemsService {
   constructor(
     @InjectRepository(Item)
     private readonly itemRepository: Repository<Item>,
+    @InjectRepository(List)
+    private readonly listRepository: Repository<List>,
   ) {}
 
-  create(createItemDto: CreateItemDto): Promise<Item> {
+  async create(createItemDto: CreateItemDto): Promise<Item> {
+    await this.ensureListExists(createItemDto.listId);
+
     const newItem = this.itemRepository.create({
       ...createItemDto,
     });
+
     return this.itemRepository.save(newItem);
   }
 
@@ -42,6 +48,11 @@ export class ItemsService {
 
   async update(id: string, updateItemDto: UpdateItemDto): Promise<Item> {
     const item = await this.findOne(id);
+
+    if (updateItemDto.listId) {
+      await this.ensureListExists(updateItemDto.listId);
+    }
+
     const updated = this.itemRepository.merge(item, updateItemDto);
 
     return this.itemRepository.save(updated);
@@ -84,6 +95,14 @@ export class ItemsService {
 
     if (result.affected === 0) {
       throw new NotFoundException(`Item with id ${id} not found`);
+    }
+  }
+
+  private async ensureListExists(listId: string): Promise<void> {
+    const list = await this.listRepository.findOne({ where: { id: listId } });
+
+    if (!list) {
+      throw new NotFoundException(`List with id ${listId} not found`);
     }
   }
 }
