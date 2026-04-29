@@ -39,7 +39,10 @@ export class Item {
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
-  @ManyToOne(() => List, (list) => list.items)
+  @ManyToOne(() => List, (list) => list.items, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'listId' })
   list: List;
 }
