@@ -34,4 +34,24 @@ describe('ListsController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
+
+  it('passes pagination params to the service', () => {
+    const paginatedResponse = {
+      data: [],
+      meta: {
+        page: 2,
+        limit: 5,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      },
+    };
+    mockListsService.findAll.mockReturnValue(paginatedResponse);
+
+    const result = controller.findAll({ page: 2, limit: 5 });
+
+    expect(mockListsService.findAll).toHaveBeenCalledWith(2, 5);
+    expect(result).toBe(paginatedResponse);
+  });
 });
