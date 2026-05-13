@@ -7,7 +7,7 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { STATUS } from '../../items/entities/item.entity';
+import { STATUS } from '../../common/enums/status.enum';
 
 export class CreateListDto {
   @ApiProperty({
@@ -32,13 +32,6 @@ export class CreateListDto {
   })
   @IsUUID()
   categoryId: string;
-
-  @ApiProperty({
-    description: 'User id',
-    example: '2cf9f2d8-a8f8-4f7e-ab1e-e4f2d03747c9',
-  })
-  @IsUUID()
-  userId: string;
 
   @ApiPropertyOptional({
     description: 'Target completion date',

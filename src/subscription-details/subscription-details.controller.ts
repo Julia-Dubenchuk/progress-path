@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SubscriptionDetailsService } from './subscription-details.service';
@@ -54,7 +55,7 @@ export class SubscriptionDetailsController {
     status: 404,
     description: 'Subscription details not found.',
   })
-  findOne(@Param('userId') userId: string) {
+  findOne(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.subscriptionDetailsService.findOne(userId);
   }
 
@@ -72,13 +73,13 @@ export class SubscriptionDetailsController {
   })
   update(
     @CurrentUser() currentUser: User,
-    @Param('userId') userId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
     @Body() updateSubscriptionDetailDto: UpdateSubscriptionDetailDto,
   ) {
     return this.subscriptionDetailsService.update({
       currentUser,
       userId,
-      updateSubscriptionDetailDto,
+      dto: updateSubscriptionDetailDto,
     });
   }
 
@@ -94,7 +95,10 @@ export class SubscriptionDetailsController {
     status: 404,
     description: 'Subscription details not found.',
   })
-  remove(@CurrentUser() currentUser: User, @Param('userId') userId: string) {
+  remove(
+    @CurrentUser() currentUser: User,
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
     return this.subscriptionDetailsService.remove(currentUser, userId);
   }
 }

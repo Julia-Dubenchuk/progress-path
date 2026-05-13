@@ -77,11 +77,8 @@ export class UserProfilesService {
   async update({
     currentUser,
     userId,
-    updateUserProfileDto,
-  }: IUpdateOperation<
-    UpdateUserProfileDto,
-    'updateUserProfileDto'
-  >): Promise<UserProfile> {
+    dto: updateUserProfileDto,
+  }: IUpdateOperation<UpdateUserProfileDto>): Promise<UserProfile> {
     try {
       this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
         currentUser,
@@ -156,8 +153,8 @@ export class UserProfilesService {
   async updateProfilePicture({
     currentUser,
     userId,
-    buffer,
-  }: IUpdateOperation<Buffer, 'buffer'>) {
+    dto: buffer,
+  }: IUpdateOperation<Buffer>) {
     try {
       this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
         currentUser,

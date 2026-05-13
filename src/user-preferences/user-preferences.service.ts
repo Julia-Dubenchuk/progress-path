@@ -78,11 +78,8 @@ export class UserPreferencesService {
   async update({
     currentUser,
     userId,
-    updateUserPreferenceDto,
-  }: IUpdateOperation<
-    UpdateUserPreferenceDto,
-    'updateUserPreferenceDto'
-  >): Promise<UserPreference> {
+    dto: updateUserPreferenceDto,
+  }: IUpdateOperation<UpdateUserPreferenceDto>): Promise<UserPreference> {
     this.logger.log(`Updating preferences for user ${userId}`, {
       context: UserPreferencesService.name,
       meta: { updateUserPreferenceDto, userId },

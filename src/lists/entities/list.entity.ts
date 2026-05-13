@@ -8,9 +8,10 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
+import { STATUS } from '../../common/enums/status.enum';
 import { User } from '../../users/entities/user.entity';
 import { Category } from '../../categories/entities/category.entity';
-import { Item, STATUS } from '../../items/entities/item.entity';
+import { Item } from '../../items/entities/item.entity';
 
 @Entity('lists')
 export class List {

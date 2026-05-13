@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
@@ -33,14 +34,14 @@ export class PermissionsController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.permissionsService.findOne(id);
   }
 
   @Patch(':id')
   @ActionOnResource({ roles: [RoleName.ADMIN] })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePermissionDto: UpdatePermissionDto,
   ) {
     return this.permissionsService.update(id, updatePermissionDto);
@@ -48,7 +49,7 @@ export class PermissionsController {
 
   @Delete(':id')
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.permissionsService.remove(id);
   }
 }

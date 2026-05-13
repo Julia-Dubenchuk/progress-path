@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ActivityLogsService } from './activity-logs.service';
@@ -65,7 +66,7 @@ export class ActivityLogsController {
     type: ActivityLog,
   })
   @ApiResponse({ status: 404, description: 'Activity log not found.' })
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.activityLogsService.findOne(id);
   }
 
@@ -88,7 +89,7 @@ export class ActivityLogsController {
   @ApiResponse({ status: 404, description: 'Activity log not found.' })
   @ApiResponse({ status: 400, description: 'Validation failed.' })
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateActivityLogDto: UpdateActivityLogDto,
   ) {
     return this.activityLogsService.update(id, updateActivityLogDto);
@@ -110,7 +111,7 @@ export class ActivityLogsController {
     description: 'Activity log successfully deleted.',
   })
   @ApiResponse({ status: 404, description: 'Activity log not found.' })
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.activityLogsService.remove(id);
   }
 }

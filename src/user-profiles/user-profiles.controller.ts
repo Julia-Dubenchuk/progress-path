@@ -11,6 +11,7 @@ import {
   Res,
   NotFoundException,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -59,7 +60,7 @@ export class UserProfilesController {
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiOkResponse({ type: UserProfile })
   @ApiNotFoundResponse({ description: 'User profile not found' })
-  findOne(@Param('userId') id: string) {
+  findOne(@Param('userId', ParseUUIDPipe) id: string) {
     return this.userProfilesService.findOne(id);
   }
 
@@ -73,13 +74,13 @@ export class UserProfilesController {
   @ApiBody({ type: UpdateUserProfileDto })
   update(
     @CurrentUser() currentUser: User,
-    @Param('userId') id: string,
+    @Param('userId', ParseUUIDPipe) id: string,
     @Body() updateUserProfileDto: UpdateUserProfileDto,
   ) {
     return this.userProfilesService.update({
       currentUser,
       userId: id,
-      updateUserProfileDto,
+      dto: updateUserProfileDto,
     });
   }
 
@@ -89,7 +90,10 @@ export class UserProfilesController {
   @ApiParam({ name: 'userId', description: 'The ID of the user' })
   @ApiOkResponse({ description: 'Profile removed successfully' })
   @ApiNotFoundResponse({ description: 'User profile not found' })
-  remove(@CurrentUser() currentUser: User, @Param('userId') id: string) {
+  remove(
+    @CurrentUser() currentUser: User,
+    @Param('userId', ParseUUIDPipe) id: string,
+  ) {
     return this.userProfilesService.remove(currentUser, id);
   }
 
@@ -111,19 +115,22 @@ export class UserProfilesController {
   @UseInterceptors(FileInterceptor('file'))
   uploadProfilePicture(
     @CurrentUser() currentUser: User,
-    @Param('userId') id: string,
+    @Param('userId', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.userProfilesService.updateProfilePicture({
       currentUser,
       userId: id,
-      buffer: file.buffer,
+      dto: file.buffer,
     });
   }
 
   @Get(':userId/profile-picture')
   @ApiOperation({ summary: 'Get user profile picture' })
-  async getProfilePicture(@Param('userId') id: string, @Res() res: Response) {
+  async getProfilePicture(
+    @Param('userId', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
     const picture = await this.userProfilesService.getProfilePicture(id);
 
     if (!picture) {

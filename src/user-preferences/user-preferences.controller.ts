@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -54,7 +55,7 @@ export class UserPreferencesController {
   @ApiParam({ name: 'userId', description: 'User ID' })
   @ApiOkResponse({ type: UserPreference })
   @ApiNotFoundResponse({ description: 'Preferences not found' })
-  findOne(@Param('userId') userId: string) {
+  findOne(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.userPreferencesService.findOne(userId);
   }
 
@@ -68,13 +69,13 @@ export class UserPreferencesController {
   @ApiBody({ type: UpdateUserPreferenceDto })
   update(
     @CurrentUser() currentUser: User,
-    @Param('userId') userId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
     @Body() updateUserPreferenceDto: UpdateUserPreferenceDto,
   ) {
     return this.userPreferencesService.update({
       currentUser,
       userId,
-      updateUserPreferenceDto,
+      dto: updateUserPreferenceDto,
     });
   }
 
@@ -84,7 +85,10 @@ export class UserPreferencesController {
   @ApiParam({ name: 'userId', description: 'User ID' })
   @ApiOkResponse({ description: 'Preferences removed successfully' })
   @ApiNotFoundResponse({ description: 'Preferences not found' })
-  remove(@CurrentUser() currentUser: User, @Param('userId') userId: string) {
+  remove(
+    @CurrentUser() currentUser: User,
+    @Param('userId', ParseUUIDPipe) userId: string,
+  ) {
     return this.userPreferencesService.remove(currentUser, userId);
   }
 }

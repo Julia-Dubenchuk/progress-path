@@ -1,11 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsDateString,
-  IsOptional,
-  IsString,
-  IsUUID,
-  MaxLength,
-} from 'class-validator';
+import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateMoodDto {
   @ApiProperty({
@@ -30,11 +24,4 @@ export class CreateMoodDto {
   })
   @IsDateString()
   date: Date;
-
-  @ApiProperty({
-    description: 'Owner user id',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @IsUUID()
-  userId: string;
 }

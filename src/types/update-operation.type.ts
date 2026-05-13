@@ -1,6 +1,7 @@
 import { User } from '../users/entities/user.entity';
 
-export type IUpdateOperation<TProperty, TKey extends string> = {
+export type IUpdateOperation<T> = {
   currentUser: User;
   userId: string;
-} & Record<TKey, TProperty>;
+  dto: T;
+};

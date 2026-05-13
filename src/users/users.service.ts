@@ -130,8 +130,8 @@ export class UsersService {
   async update({
     currentUser,
     userId,
-    updateUserDto,
-  }: IUpdateOperation<UpdateUserDto, 'updateUserDto'>): Promise<User> {
+    dto: updateUserDto,
+  }: IUpdateOperation<UpdateUserDto>): Promise<User> {
     this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
       currentUser,
       targetUserId: userId,
@@ -259,9 +259,9 @@ export class UsersService {
       }
 
       await profileRepository.delete(id);
-      await userRepository.delete(id);
       await preferenceRepository.delete(id);
       await subscriptionRepository.delete(id);
+      await userRepository.delete(id);
 
       await queryRunner.commitTransaction();
 

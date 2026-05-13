@@ -2,7 +2,6 @@ import { SetMetadata, UseGuards, applyDecorators } from '@nestjs/common';
 import { Action } from '../../permissions/entities/permission.entity';
 import { RoleName } from '../../roles/entities/role.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { Roles } from './roles.decorator';
 import { RequirePermissions } from './permissions.decorator';
@@ -19,7 +18,6 @@ export const ActionOnResource = (options: ActionOnResourceOptions) => {
   const decorators = [UseGuards(JwtAuthGuard)];
 
   if (roles.length > 0) {
-    decorators.push(UseGuards(RolesGuard));
     decorators.push(Roles(...roles));
   }
 

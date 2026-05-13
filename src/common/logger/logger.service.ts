@@ -46,7 +46,19 @@ export class LoggerService implements NestLogger {
     return this.normalizeValue(meta) as IMetaParams['meta'];
   }
 
-  private normalizeValue(value: unknown): unknown {
+  private normalizeValue(value: unknown, seen = new WeakSet()): unknown {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    if (typeof value === 'object') {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+
+      seen.add(value);
+    }
+
     if (value instanceof Error) {
       const errorWithExtras = value as Error & Record<string, unknown>;
 
@@ -57,20 +69,20 @@ export class LoggerService implements NestLogger {
         ...Object.fromEntries(
           Object.entries(errorWithExtras).map(([key, nestedValue]) => [
             key,
-            this.normalizeValue(nestedValue),
+            this.normalizeValue(nestedValue, seen),
           ]),
         ),
       };
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => this.normalizeValue(item));
+      return value.map((item) => this.normalizeValue(item, seen));
     }
 
-    if (value && typeof value === 'object') {
+    if (typeof value === 'object') {
       return Object.fromEntries(
         Object.entries(value as Record<string, unknown>).map(
-          ([key, nestedValue]) => [key, this.normalizeValue(nestedValue)],
+          ([key, nestedValue]) => [key, this.normalizeValue(nestedValue, seen)],
         ),
       );
     }
