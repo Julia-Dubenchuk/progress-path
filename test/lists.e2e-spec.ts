@@ -184,28 +184,47 @@ describe('ListsController (e2e)', () => {
       expect(mockListsService.findAll).not.toHaveBeenCalled();
     });
 
-    it('returns 200 when a valid token is provided', async () => {
-      const lists = [
-        {
-          id: 'list-1',
-          title: 'Weekly goals',
-          description: 'Track the top priorities for this week.',
-          categoryId: '550e8400-e29b-41d4-a716-446655440000',
-          userId: 'admin-user-id',
-          targetDate: '2026-03-01',
-          status: STATUS.PLANNED,
+    it('returns 200 with paginated lists when a valid token is provided', async () => {
+      const paginatedLists = {
+        data: [
+          {
+            id: 'list-1',
+            title: 'Weekly goals',
+            description: 'Track the top priorities for this week.',
+            categoryId: '550e8400-e29b-41d4-a716-446655440000',
+            userId: 'admin-user-id',
+            targetDate: '2026-03-01',
+            status: STATUS.PLANNED,
+          },
+        ],
+        meta: {
+          page: 2,
+          limit: 5,
+          total: 11,
+          totalPages: 3,
+          hasNextPage: true,
+          hasPreviousPage: true,
         },
-      ];
+      };
 
-      mockListsService.findAll.mockResolvedValue(lists);
+      mockListsService.findAll.mockResolvedValue(paginatedLists);
 
       await request(app.getHttpServer())
-        .get('/lists')
+        .get('/lists?page=2&limit=5')
         .set('Authorization', 'Bearer user-token')
         .expect(200)
-        .expect(lists);
+        .expect(paginatedLists);
 
-      expect(mockListsService.findAll).toHaveBeenCalled();
+      expect(mockListsService.findAll).toHaveBeenCalledWith(2, 5);
+    });
+
+    it('returns 400 for invalid pagination params', async () => {
+      await request(app.getHttpServer())
+        .get('/lists?page=0&limit=101')
+        .set('Authorization', 'Bearer user-token')
+        .expect(400);
+
+      expect(mockListsService.findAll).not.toHaveBeenCalled();
     });
   });
 });
