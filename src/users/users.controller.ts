@@ -74,7 +74,7 @@ export class UsersController {
   ) {
     return this.usersService.update({
       currentUser,
-      userId: id,
+      id,
       dto: updateUserDto,
     });
   }

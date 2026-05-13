@@ -76,19 +76,19 @@ export class UserProfilesService {
 
   async update({
     currentUser,
-    userId,
+    id,
     dto: updateUserProfileDto,
   }: IUpdateOperation<UpdateUserProfileDto>): Promise<UserProfile> {
     try {
       this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
         currentUser,
-        targetUserId: userId,
+        targetUserId: id,
         action: 'update profile',
         context: UserProfilesService.name,
         forbiddenMessage: 'You are not allowed to update this profile',
       });
 
-      const profile = await this.findOne(userId);
+      const profile = await this.findOne(id);
 
       const updated = this.userProfileRepository.merge(
         profile,
@@ -97,17 +97,17 @@ export class UserProfilesService {
 
       const saved = await this.userProfileRepository.save(updated);
 
-      this.logger.log(`Updated profile for user ${userId}`, {
+      this.logger.log(`Updated profile for user ${id}`, {
         context: UserProfilesService.name,
         meta: {
           updatedBy: currentUser.id,
-          targetUserId: userId,
+          targetUserId: id,
         },
       });
 
       return saved;
     } catch (error) {
-      this.logger.error(`Failed to update profile for user ${userId}`, {
+      this.logger.error(`Failed to update profile for user ${id}`, {
         context: UserProfilesService.name,
         meta: { error, currentUserId: currentUser.id },
       });
@@ -152,43 +152,43 @@ export class UserProfilesService {
 
   async updateProfilePicture({
     currentUser,
-    userId,
+    id,
     dto: buffer,
   }: IUpdateOperation<Buffer>) {
     try {
       this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
         currentUser,
-        targetUserId: userId,
+        targetUserId: id,
         action: 'update profile picture',
         context: UserProfilesService.name,
         forbiddenMessage:
           'You are not allowed to update a picture for this profile',
       });
 
-      const profile = await this.findOne(userId);
+      const profile = await this.findOne(id);
 
       if (!profile) {
         this.logger.warn(
-          `Profile for user ${userId} not found for picture update`,
-          { context: UserProfilesService.name, meta: { userId } },
+          `Profile for user ${id} not found for picture update`,
+          { context: UserProfilesService.name, meta: { userId: id } },
         );
-        throw new NotFoundException(`Profile for user ${userId} not found`);
+        throw new NotFoundException(`Profile for user ${id} not found`);
       }
 
       profile.profilePicture = buffer;
 
       await this.userProfileRepository.save(profile);
 
-      this.logger.log(`Updated profile picture for user ${userId}`, {
+      this.logger.log(`Updated profile picture for user ${id}`, {
         context: UserProfilesService.name,
-        meta: { userId },
+        meta: { userId: id },
       });
 
       return {
         message: 'Profile picture uploaded successfully',
       };
     } catch (error) {
-      this.logger.error(`Failed to update profile picture for user ${userId}`, {
+      this.logger.error(`Failed to update profile picture for user ${id}`, {
         context: UserProfilesService.name,
         meta: error,
       });

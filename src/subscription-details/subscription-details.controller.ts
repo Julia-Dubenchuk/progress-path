@@ -78,7 +78,7 @@ export class SubscriptionDetailsController {
   ) {
     return this.subscriptionDetailsService.update({
       currentUser,
-      userId,
+      id: userId,
       dto: updateSubscriptionDetailDto,
     });
   }
