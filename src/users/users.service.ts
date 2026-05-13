@@ -129,24 +129,24 @@ export class UsersService {
 
   async update({
     currentUser,
-    userId,
+    id,
     dto: updateUserDto,
   }: IUpdateOperation<UpdateUserDto>): Promise<User> {
     this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
       currentUser,
-      targetUserId: userId,
+      targetUserId: id,
       action: 'update user',
       context: UsersService.name,
       forbiddenMessage: 'You are not allowed to update this profile',
     });
 
     const user = await this.usersRepository.findOne({
-      where: { id: userId },
+      where: { id },
       relations: ['roles'],
     });
 
     if (!user) {
-      throw new NotFoundException(`User with id ${userId} not found`);
+      throw new NotFoundException(`User with id ${id} not found`);
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -173,15 +173,15 @@ export class UsersService {
       }
 
       if (profile) {
-        await profileRepository.update(userId, profile);
+        await profileRepository.update(id, profile);
       }
 
       if (preference) {
-        await preferenceRepository.update(userId, preference);
+        await preferenceRepository.update(id, preference);
       }
 
       if (subscriptionDetail) {
-        await subscriptionRepository.update(userId, subscriptionDetail);
+        await subscriptionRepository.update(id, subscriptionDetail);
       }
 
       const updatedUser = await userRepository.save(user);
@@ -190,21 +190,21 @@ export class UsersService {
 
       void this.activityLogsService.create({
         action: 'USER_UPDATED',
-        description: `User ${userId} updated`,
+        description: `User ${id} updated`,
         success: true,
       });
 
-      this.logger.log(`User ${userId} updated successfully`, {
-        meta: { id: userId },
+      this.logger.log(`User ${id} updated successfully`, {
+        meta: { id },
       });
       return updatedUser;
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Failed to update user ${userId}`, { meta: error });
+      this.logger.error(`Failed to update user ${id}`, { meta: error });
       void this.activityLogsService.create({
         action: 'USER_UPDATE_FAILED',
-        description: `User update failed for ${userId}`,
+        description: `User update failed for ${id}`,
         success: false,
       });
 

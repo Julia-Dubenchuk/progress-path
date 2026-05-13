@@ -77,23 +77,23 @@ export class UserPreferencesService {
 
   async update({
     currentUser,
-    userId,
+    id,
     dto: updateUserPreferenceDto,
   }: IUpdateOperation<UpdateUserPreferenceDto>): Promise<UserPreference> {
-    this.logger.log(`Updating preferences for user ${userId}`, {
+    this.logger.log(`Updating preferences for user ${id}`, {
       context: UserPreferencesService.name,
-      meta: { updateUserPreferenceDto, userId },
+      meta: { updateUserPreferenceDto, userId: id },
     });
 
     this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
       currentUser,
-      targetUserId: userId,
+      targetUserId: id,
       action: 'update preferences',
       context: UserPreferencesService.name,
       forbiddenMessage: "You are not allowed to update this user's preference",
     });
 
-    const preference = await this.findOne(userId);
+    const preference = await this.findOne(id);
 
     const updated = this.userPreferenceRepository.merge(
       preference,
@@ -102,9 +102,9 @@ export class UserPreferencesService {
 
     const saved = await this.userPreferenceRepository.save(updated);
 
-    this.logger.log(`Preferences updated successfully for user ${userId}`, {
+    this.logger.log(`Preferences updated successfully for user ${id}`, {
       context: UserPreferencesService.name,
-      meta: { userId },
+      meta: { userId: id },
     });
 
     return saved;

@@ -74,7 +74,7 @@ export class UserPreferencesController {
   ) {
     return this.userPreferencesService.update({
       currentUser,
-      userId,
+      id: userId,
       dto: updateUserPreferenceDto,
     });
   }

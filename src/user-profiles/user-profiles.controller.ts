@@ -79,7 +79,7 @@ export class UserProfilesController {
   ) {
     return this.userProfilesService.update({
       currentUser,
-      userId: id,
+      id,
       dto: updateUserProfileDto,
     });
   }
@@ -120,7 +120,7 @@ export class UserProfilesController {
   ) {
     return this.userProfilesService.updateProfilePicture({
       currentUser,
-      userId: id,
+      id,
       dto: file.buffer,
     });
   }

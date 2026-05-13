@@ -22,6 +22,7 @@ import {
   CurrentUser,
   JwtPayload,
 } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('lists')
 export class ListsController {
@@ -39,10 +40,12 @@ export class ListsController {
   @Get()
   @UseGuards(JwtAuthGuard)
   findAll(
+    @CurrentUser() user: JwtPayload,
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     paginationQuery: ListPaginationQueryDto,
   ) {
     return this.listsService.findAll(
+      user.sub,
       paginationQuery.page,
       paginationQuery.limit,
     );
@@ -50,8 +53,11 @@ export class ListsController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.listsService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.listsService.findOne(id, user.sub);
   }
 
   @Patch(':id')
@@ -59,8 +65,13 @@ export class ListsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateListDto: UpdateListDto,
+    @CurrentUser() currentUser: User,
   ) {
-    return this.listsService.update(id, updateListDto);
+    return this.listsService.update({
+      currentUser,
+      id,
+      dto: updateListDto,
+    });
   }
 
   @Delete(':id')

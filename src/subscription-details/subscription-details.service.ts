@@ -80,24 +80,24 @@ export class SubscriptionDetailsService {
 
   async update({
     currentUser,
-    userId,
+    id,
     dto: updateSubscriptionDetailDto,
   }: IUpdateOperation<UpdateSubscriptionDetailDto>): Promise<SubscriptionDetail> {
-    this.logger.log(`Updating subscription detail for user ${userId}`, {
+    this.logger.log(`Updating subscription detail for user ${id}`, {
       context: SubscriptionDetailsService.name,
-      meta: { updateSubscriptionDetailDto, userId },
+      meta: { updateSubscriptionDetailDto, userId: id },
     });
 
     this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
       currentUser,
-      targetUserId: userId,
+      targetUserId: id,
       action: 'update subscription detail',
       context: SubscriptionDetailsService.name,
       forbiddenMessage:
         'You are not allowed to update this subscription detail',
     });
 
-    const subscription = await this.findOne(userId);
+    const subscription = await this.findOne(id);
 
     const updated = this.subscriptionRepository.merge(
       subscription,
@@ -106,10 +106,10 @@ export class SubscriptionDetailsService {
 
     const saved = await this.subscriptionRepository.save(updated);
 
-    this.logger.log(
-      `Subscription detail updated successfully for user ${userId}`,
-      { context: SubscriptionDetailsService.name, meta: { userId } },
-    );
+    this.logger.log(`Subscription detail updated successfully for user ${id}`, {
+      context: SubscriptionDetailsService.name,
+      meta: { userId: id },
+    });
 
     return saved;
   }

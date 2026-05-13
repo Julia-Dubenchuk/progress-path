@@ -5,6 +5,7 @@ import { CreateListDto } from './dto/create-list.dto';
 import { PaginatedListsResponseDto } from './dto/paginated-lists-response.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { List } from './entities/list.entity';
+import { IUpdateOperation } from 'src/types/update-operation.type.js';
 
 @Injectable()
 export class ListsService {
@@ -21,8 +22,13 @@ export class ListsService {
     return this.listRepository.save(list);
   }
 
-  async findAll(page = 1, limit = 10): Promise<PaginatedListsResponseDto> {
+  async findAll(
+    userId: string,
+    page = 1,
+    limit = 10,
+  ): Promise<PaginatedListsResponseDto> {
     const [data, total] = await this.listRepository.findAndCount({
+      where: { userId },
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -42,8 +48,8 @@ export class ListsService {
     };
   }
 
-  async findOne(id: string): Promise<List> {
-    const list = await this.listRepository.findOne({ where: { id } });
+  async findOne(id: string, userId: string): Promise<List> {
+    const list = await this.listRepository.findOne({ where: { id, userId } });
 
     if (!list) {
       throw new NotFoundException(`List with id ${id} not found`);
@@ -52,8 +58,12 @@ export class ListsService {
     return list;
   }
 
-  async update(id: string, updateListDto: UpdateListDto): Promise<List> {
-    const list = await this.findOne(id);
+  async update({
+    currentUser,
+    id,
+    dto: updateListDto,
+  }: IUpdateOperation<UpdateListDto>): Promise<List> {
+    const list = await this.findOne(id, currentUser.id);
     const updated = this.listRepository.merge(list, updateListDto);
 
     return this.listRepository.save(updated);

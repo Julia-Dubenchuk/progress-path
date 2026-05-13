@@ -34,13 +34,15 @@ describe('ListsService', () => {
     expect(service).toBeDefined();
   });
 
-  it('returns paginated lists metadata', async () => {
+  it('returns paginated lists scoped to the current user', async () => {
+    const userId = 'user-uuid';
     const lists = [{ id: 'list-2' }, { id: 'list-1' }] as List[];
     mockListRepository.findAndCount.mockResolvedValue([lists, 5]);
 
-    const result = await service.findAll(2, 2);
+    const result = await service.findAll(userId, 2, 2);
 
     expect(mockListRepository.findAndCount).toHaveBeenCalledWith({
+      where: { userId },
       order: { createdAt: 'DESC' },
       skip: 2,
       take: 2,
@@ -61,7 +63,7 @@ describe('ListsService', () => {
   it('throws when a list is not found', async () => {
     mockListRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne('missing-id')).rejects.toThrow(
+    await expect(service.findOne('missing-id', 'user-uuid')).rejects.toThrow(
       new NotFoundException('List with id missing-id not found'),
     );
   });
