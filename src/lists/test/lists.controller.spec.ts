@@ -72,7 +72,7 @@ describe('ListsController', () => {
       expect(mockListsService.findAll).toHaveBeenCalledWith(user.sub, 1, 10);
     });
 
-    it('passes pagination params to the service', () => {
+    it('passes pagination params to the service', async () => {
       const paginatedResponse = {
         data: [],
         meta: {
@@ -84,9 +84,9 @@ describe('ListsController', () => {
           hasPreviousPage: true,
         },
       };
-      mockListsService.findAll.mockReturnValue(paginatedResponse);
+      mockListsService.findAll.mockResolvedValue(paginatedResponse);
 
-      const result = controller.findAll(user, { page: 2, limit: 5 });
+      const result = await controller.findAll(user, { page: 2, limit: 5 });
 
       expect(mockListsService.findAll).toHaveBeenCalledWith(user.sub, 2, 5);
       expect(result).toBe(paginatedResponse);
