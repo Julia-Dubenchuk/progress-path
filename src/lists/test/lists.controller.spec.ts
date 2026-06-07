@@ -4,7 +4,6 @@ import { ListsController } from '../lists.controller';
 import { ListsService } from '../lists.service';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { User } from '../../users/entities/user.entity';
-import { JwtPayload } from '../../auth/decorators/current-user.decorator';
 
 describe('ListsController', () => {
   let controller: ListsController;
@@ -38,11 +37,11 @@ describe('ListsController', () => {
   });
 
   describe('findAll', () => {
-    const user: JwtPayload = {
-      sub: '9e1e4ec1-7b89-456b-9e5a-2d84a58d241b',
+    const user = {
+      id: '9e1e4ec1-7b89-456b-9e5a-2d84a58d241b',
       email: 'owner@example.com',
       username: 'owner',
-    };
+    } as User;
 
     it('should scope results to the current user', async () => {
       const ownedLists = {
@@ -50,7 +49,7 @@ describe('ListsController', () => {
           {
             id: 'e763d4ac-f0ca-4867-9dfc-68607143ac2d',
             title: 'Daily wins',
-            userId: user.sub,
+            userId: user.id,
           },
         ],
         meta: {
@@ -69,7 +68,7 @@ describe('ListsController', () => {
 
       expect(result).toBe(ownedLists);
       expect(mockListsService.findAll).toHaveBeenCalledTimes(1);
-      expect(mockListsService.findAll).toHaveBeenCalledWith(user.sub, 1, 10);
+      expect(mockListsService.findAll).toHaveBeenCalledWith(user.id, 1, 10);
     });
 
     it('passes pagination params to the service', async () => {
@@ -88,23 +87,23 @@ describe('ListsController', () => {
 
       const result = await controller.findAll(user, { page: 2, limit: 5 });
 
-      expect(mockListsService.findAll).toHaveBeenCalledWith(user.sub, 2, 5);
+      expect(mockListsService.findAll).toHaveBeenCalledWith(user.id, 2, 5);
       expect(result).toBe(paginatedResponse);
     });
   });
 
   describe('findOne', () => {
     it('should return a list only after validating ownership for the current user', async () => {
-      const user: JwtPayload = {
-        sub: '9e1e4ec1-7b89-456b-9e5a-2d84a58d241b',
+      const user = {
+        id: '9e1e4ec1-7b89-456b-9e5a-2d84a58d241b',
         email: 'owner@example.com',
         username: 'owner',
-      };
+      } as User;
       const listId = 'e763d4ac-f0ca-4867-9dfc-68607143ac2d';
       const ownedList = {
         id: listId,
         title: 'Daily wins',
-        userId: user.sub,
+        userId: user.id,
       };
 
       mockListsService.findOne.mockResolvedValue(ownedList);
@@ -113,7 +112,7 @@ describe('ListsController', () => {
 
       expect(result).toBe(ownedList);
       expect(mockListsService.findOne).toHaveBeenCalledTimes(1);
-      expect(mockListsService.findOne).toHaveBeenCalledWith(listId, user.sub);
+      expect(mockListsService.findOne).toHaveBeenCalledWith(listId, user.id);
     });
   });
 });
