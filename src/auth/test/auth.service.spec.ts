@@ -4,6 +4,12 @@ import { DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+
+jest.mock('bcrypt', () => ({
+  ...jest.requireActual('bcrypt'),
+  compare: jest.fn(),
+}));
+
 import { AuthService } from '../auth.service';
 import { User } from '../../users/entities/user.entity';
 import { UserProfile } from '../../user-profiles/entities/user-profile.entity';
@@ -187,7 +193,9 @@ describe('AuthService', () => {
       expect(savedUser).toBeDefined();
       expect(savedUser?.password).toMatch(/^\$2b\$/);
       await expect(
-        bcrypt.compare(mockRegisterDto.password, savedUser!.password!),
+        jest
+          .requireActual<typeof bcrypt>('bcrypt')
+          .compare(mockRegisterDto.password, savedUser!.password!),
       ).resolves.toBe(true);
     });
 
@@ -219,7 +227,7 @@ describe('AuthService', () => {
 
       mockUserRepository.findOne.mockResolvedValue(mockUser);
 
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await service.loginWithCredentials(mockLoginDto);
 
@@ -358,7 +366,9 @@ describe('AuthService', () => {
       const { password: hashedPassword } = updatePayload;
       expect(hashedPassword).toMatch(/^\$2b\$/);
       await expect(
-        bcrypt.compare('NewPassword123!', hashedPassword),
+        jest
+          .requireActual<typeof bcrypt>('bcrypt')
+          .compare('NewPassword123!', hashedPassword),
       ).resolves.toBe(true);
       expect(tokenRepo.update).toHaveBeenCalledWith('token-id', { used: true });
     });
