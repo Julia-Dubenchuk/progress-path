@@ -15,10 +15,8 @@ import { UpdateMoodDto } from './dto/update-mood.dto';
 import { ActionOnResource } from '../auth/decorators/action-on-resource.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleName } from '../roles/entities/role.entity';
-import {
-  CurrentUser,
-  JwtPayload,
-} from '../auth/decorators/current-user.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('moods')
 export class MoodsController {
@@ -26,11 +24,8 @@ export class MoodsController {
 
   @Post()
   @ActionOnResource({ roles: [RoleName.ADMIN] })
-  create(
-    @Body() createMoodDto: CreateMoodDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.moodsService.create(createMoodDto, user.sub);
+  create(@Body() createMoodDto: CreateMoodDto, @CurrentUser() user: User) {
+    return this.moodsService.create(createMoodDto, user.id);
   }
 
   @Get()

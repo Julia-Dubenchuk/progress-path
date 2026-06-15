@@ -42,8 +42,8 @@ export class ListsService {
         limit,
         total,
         totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
+        hasNextPage: total > 0 && page < totalPages,
+        hasPreviousPage: total > 0 && page > 1,
       },
     };
   }

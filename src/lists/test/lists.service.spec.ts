@@ -60,6 +60,19 @@ describe('ListsService', () => {
     });
   });
 
+  it('returns both navigation flags as false when total is 0', async () => {
+    mockListRepository.findAndCount.mockResolvedValue([[], 0]);
+
+    const result = await service.findAll('user-uuid', 2, 5);
+
+    expect(result.meta).toMatchObject({
+      total: 0,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    });
+  });
+
   it('throws when a list is not found', async () => {
     mockListRepository.findOne.mockResolvedValue(null);
 
