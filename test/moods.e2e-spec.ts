@@ -6,10 +6,10 @@ import {
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import * as request from 'supertest';
+import request from 'supertest';
 import { App } from 'supertest/types';
 import { JwtAuthGuard } from '../src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../src/auth/guards/roles.guard';
@@ -60,16 +60,7 @@ class FakeJwtAuthGuard implements CanActivate {
   controllers: [MoodsController],
   providers: [
     Reflector,
-    FakeJwtAuthGuard,
     RolesGuard,
-    {
-      provide: APP_GUARD,
-      useExisting: FakeJwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useExisting: RolesGuard,
-    },
     {
       provide: MoodsService,
       useValue: mockMoodsService,

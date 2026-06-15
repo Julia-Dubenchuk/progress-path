@@ -5,3 +5,9 @@ export type IUpdateOperation<T> = {
   id: string;
   dto: T;
 };
+
+export type IBinaryUpdateOperation = {
+  currentUser: User;
+  id: string;
+  payload: Buffer;
+};

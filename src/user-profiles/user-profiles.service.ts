@@ -11,7 +11,10 @@ import { Repository } from 'typeorm';
 import { LoggerService } from '../common/logger/logger.service';
 import { User } from '../users/entities/user.entity';
 import { OwnershipAuthorizationService } from '../common/authorization/ownership-authorization.service';
-import { IUpdateOperation } from '../types/update-operation.type';
+import {
+  IBinaryUpdateOperation,
+  IUpdateOperation,
+} from '../types/update-operation.type';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
 @Injectable()
@@ -153,8 +156,8 @@ export class UserProfilesService {
   async updateProfilePicture({
     currentUser,
     id,
-    dto: buffer,
-  }: IUpdateOperation<Buffer>) {
+    payload: buffer,
+  }: IBinaryUpdateOperation) {
     try {
       this.ownershipAuthorizationService.assertCanManageOwnResourceOrThrow({
         currentUser,

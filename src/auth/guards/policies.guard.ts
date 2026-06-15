@@ -6,10 +6,8 @@ import { User } from '../../users/entities/user.entity';
 import { AppAbility, CaslAbilityFactory } from '../casl/casl-ability.factory';
 import { PolicyHandler } from '../casl/policy-handler.interface';
 import { CHECK_POLICIES_KEY } from '../decorators/check-policies.decorator';
-import { JwtPayload } from '../decorators/current-user.decorator';
-
 interface RequestWithUser {
-  user: JwtPayload;
+  user: User;
 }
 
 @Injectable()
@@ -33,7 +31,7 @@ export class PoliciesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const userId = request.user?.sub;
+    const userId = request.user?.id;
 
     if (!userId) {
       return false; // No user ID in the request, access denied

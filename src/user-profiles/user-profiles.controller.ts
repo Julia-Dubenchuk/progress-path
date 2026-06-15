@@ -121,7 +121,7 @@ export class UserProfilesController {
     return this.userProfilesService.updateProfilePicture({
       currentUser,
       id,
-      dto: file.buffer,
+      payload: file.buffer,
     });
   }
 

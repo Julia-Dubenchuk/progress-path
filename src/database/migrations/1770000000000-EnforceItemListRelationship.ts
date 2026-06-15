@@ -6,6 +6,7 @@ export class EnforceItemListRelationship1770000000000
   name = 'EnforceItemListRelationship1770000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('DELETE FROM "items" WHERE "listId" IS NULL');
     await queryRunner.query(
       'ALTER TABLE "items" ALTER COLUMN "listId" SET NOT NULL',
     );

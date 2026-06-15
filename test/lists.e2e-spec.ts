@@ -6,10 +6,10 @@ import {
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import * as request from 'supertest';
+import request from 'supertest';
 import { App } from 'supertest/types';
 import { JwtAuthGuard } from '../src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../src/auth/guards/roles.guard';
@@ -61,16 +61,7 @@ class FakeJwtAuthGuard implements CanActivate {
   controllers: [ListsController],
   providers: [
     Reflector,
-    FakeJwtAuthGuard,
     RolesGuard,
-    {
-      provide: APP_GUARD,
-      useExisting: FakeJwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useExisting: RolesGuard,
-    },
     {
       provide: ListsService,
       useValue: mockListsService,
@@ -215,7 +206,11 @@ describe('ListsController (e2e)', () => {
         .expect(200)
         .expect(paginatedLists);
 
-      expect(mockListsService.findAll).toHaveBeenCalledWith(2, 5);
+      expect(mockListsService.findAll).toHaveBeenCalledWith(
+        'regular-user-id',
+        2,
+        5,
+      );
     });
 
     it('returns 400 for invalid pagination params', async () => {

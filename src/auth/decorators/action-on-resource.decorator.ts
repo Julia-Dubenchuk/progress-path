@@ -3,6 +3,7 @@ import { Action } from '../../permissions/entities/permission.entity';
 import { RoleName } from '../../roles/entities/role.entity';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
+import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from './roles.decorator';
 import { RequirePermissions } from './permissions.decorator';
 
@@ -19,6 +20,7 @@ export const ActionOnResource = (options: ActionOnResourceOptions) => {
 
   if (roles.length > 0) {
     decorators.push(Roles(...roles));
+    decorators.push(UseGuards(RolesGuard));
   }
 
   if (permissions.length > 0) {

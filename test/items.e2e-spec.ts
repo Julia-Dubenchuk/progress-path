@@ -3,15 +3,17 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   INestApplication,
   Module,
+  NotFoundException,
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import * as request from 'supertest';
+import request from 'supertest';
 import { App } from 'supertest/types';
 import { JwtAuthGuard } from '../src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../src/auth/guards/roles.guard';
@@ -26,6 +28,7 @@ const mockItemsService = {
   findAll: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
+  updateStatus: jest.fn(),
   remove: jest.fn(),
 };
 
@@ -55,6 +58,11 @@ class FakeJwtAuthGuard implements CanActivate {
       return true;
     }
 
+    if (authHeader === 'Bearer owner-token') {
+      request.user = { id: 'owner-user-id', sub: 'owner-user-id' };
+      return true;
+    }
+
     throw new UnauthorizedException();
   }
 }
@@ -63,16 +71,7 @@ class FakeJwtAuthGuard implements CanActivate {
   controllers: [ItemsController],
   providers: [
     Reflector,
-    FakeJwtAuthGuard,
     RolesGuard,
-    {
-      provide: APP_GUARD,
-      useExisting: FakeJwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useExisting: RolesGuard,
-    },
     {
       provide: ItemsService,
       useValue: mockItemsService,
@@ -205,6 +204,92 @@ describe('ItemsController (e2e)', () => {
         .expect(items);
 
       expect(mockItemsService.findAll).toHaveBeenCalled();
+    });
+  });
+
+  describe('PATCH /items/:id/status', () => {
+    const itemId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+    const validPayload = { status: STATUS.IN_PROGRESS };
+
+    it('returns 401 when no token is provided', async () => {
+      await request(app.getHttpServer())
+        .patch(`/items/${itemId}/status`)
+        .send(validPayload)
+        .expect(401);
+
+      expect(mockItemsService.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 for an invalid status value', async () => {
+      await request(app.getHttpServer())
+        .patch(`/items/${itemId}/status`)
+        .set('Authorization', 'Bearer user-token')
+        .send({ status: 'invalid-status' })
+        .expect(400);
+
+      expect(mockItemsService.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('returns 404 when the item does not exist', async () => {
+      mockItemsService.updateStatus.mockRejectedValue(
+        new NotFoundException(`Item with id ${itemId} not found`),
+      );
+
+      await request(app.getHttpServer())
+        .patch(`/items/${itemId}/status`)
+        .set('Authorization', 'Bearer user-token')
+        .send(validPayload)
+        .expect(404);
+    });
+
+    it('returns 403 when the user is not the list owner and not an admin', async () => {
+      mockItemsService.updateStatus.mockRejectedValue(
+        new ForbiddenException(
+          'You are not allowed to update this item status',
+        ),
+      );
+
+      await request(app.getHttpServer())
+        .patch(`/items/${itemId}/status`)
+        .set('Authorization', 'Bearer user-token')
+        .send(validPayload)
+        .expect(403);
+    });
+
+    it('returns 200 when the user is an admin (not the list owner)', async () => {
+      const updatedItem = { id: itemId, ...validPayload };
+      mockItemsService.updateStatus.mockResolvedValue(updatedItem);
+
+      await request(app.getHttpServer())
+        .patch(`/items/${itemId}/status`)
+        .set('Authorization', 'Bearer admin-token')
+        .send(validPayload)
+        .expect(200)
+        .expect(updatedItem);
+
+      expect(mockItemsService.updateStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'admin-user-id' }),
+        itemId,
+        validPayload,
+      );
+    });
+
+    it('returns 200 when the user is the list owner', async () => {
+      const updatedItem = { id: itemId, ...validPayload };
+      mockItemsService.updateStatus.mockResolvedValue(updatedItem);
+
+      await request(app.getHttpServer())
+        .patch(`/items/${itemId}/status`)
+        .set('Authorization', 'Bearer owner-token')
+        .send(validPayload)
+        .expect(200)
+        .expect(updatedItem);
+
+      expect(mockItemsService.updateStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'owner-user-id' }),
+        itemId,
+        validPayload,
+      );
     });
   });
 });
