@@ -6,8 +6,6 @@ export type IUpdateOperation<T> = {
   dto: T;
 };
 
-export type IBinaryUpdateOperation = {
-  currentUser: User;
-  id: string;
+export type IBinaryUpdateOperation = Omit<IUpdateOperation<Buffer>, 'dto'> & {
   payload: Buffer;
 };

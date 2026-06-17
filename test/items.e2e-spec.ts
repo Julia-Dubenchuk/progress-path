@@ -40,7 +40,7 @@ class FakeJwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<{
       headers: { authorization?: string };
-      user?: { id: string; sub: string };
+      user?: { id: string };
     }>();
     const authHeader = request.headers.authorization;
 
@@ -49,17 +49,17 @@ class FakeJwtAuthGuard implements CanActivate {
     }
 
     if (authHeader === 'Bearer admin-token') {
-      request.user = { id: 'admin-user-id', sub: 'admin-user-id' };
+      request.user = { id: 'admin-user-id' };
       return true;
     }
 
     if (authHeader === 'Bearer user-token') {
-      request.user = { id: 'regular-user-id', sub: 'regular-user-id' };
+      request.user = { id: 'regular-user-id' };
       return true;
     }
 
     if (authHeader === 'Bearer owner-token') {
-      request.user = { id: 'owner-user-id', sub: 'owner-user-id' };
+      request.user = { id: 'owner-user-id' };
       return true;
     }
 
