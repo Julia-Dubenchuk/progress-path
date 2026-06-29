@@ -6,6 +6,8 @@ import { PaginatedListsResponseDto } from './dto/paginated-lists-response.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { List } from './entities/list.entity';
 import { IUpdateOperation } from 'src/types/update-operation.type.js';
+import { User } from '../users/entities/user.entity';
+import { getOwnerScopedWhere } from '../common/authorization/owner-scoped-query.util';
 
 @Injectable()
 export class ListsService {
@@ -23,12 +25,16 @@ export class ListsService {
   }
 
   async findAll(
-    userId: string,
+    currentUser: User,
     page = 1,
     limit = 10,
   ): Promise<PaginatedListsResponseDto> {
+    const where = getOwnerScopedWhere(currentUser, {
+      userId: currentUser.id,
+    });
+
     const [data, total] = await this.listRepository.findAndCount({
-      where: { userId },
+      where,
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -48,8 +54,13 @@ export class ListsService {
     };
   }
 
-  async findOne(id: string, userId: string): Promise<List> {
-    const list = await this.listRepository.findOne({ where: { id, userId } });
+  async findOne(id: string, currentUser: User): Promise<List> {
+    const where = getOwnerScopedWhere(
+      currentUser,
+      { id, userId: currentUser.id },
+      { id },
+    );
+    const list = await this.listRepository.findOne({ where });
 
     if (!list) {
       throw new NotFoundException(`List with id ${id} not found`);
@@ -63,7 +74,7 @@ export class ListsService {
     id,
     dto: updateListDto,
   }: IUpdateOperation<UpdateListDto>): Promise<List> {
-    const list = await this.findOne(id, currentUser.id);
+    const list = await this.findOne(id, currentUser);
     const updated = this.listRepository.merge(list, updateListDto);
 
     return this.listRepository.save(updated);

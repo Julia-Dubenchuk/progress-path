@@ -207,7 +207,7 @@ describe('ListsController (e2e)', () => {
         .expect(paginatedLists);
 
       expect(mockListsService.findAll).toHaveBeenCalledWith(
-        'regular-user-id',
+        expect.objectContaining({ id: 'regular-user-id' }),
         2,
         5,
       );

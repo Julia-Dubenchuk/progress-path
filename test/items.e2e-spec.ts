@@ -203,7 +203,44 @@ describe('ItemsController (e2e)', () => {
         .expect(200)
         .expect(items);
 
-      expect(mockItemsService.findAll).toHaveBeenCalled();
+      expect(mockItemsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'regular-user-id' }),
+      );
+    });
+  });
+
+  describe('GET /items/:id', () => {
+    const itemId = '550e8400-e29b-41d4-a716-446655440000';
+
+    it('returns 401 when no token is provided', async () => {
+      await request(app.getHttpServer()).get(`/items/${itemId}`).expect(401);
+
+      expect(mockItemsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 when a valid token is provided', async () => {
+      const item = {
+        id: itemId,
+        title: 'Buy groceries',
+        description: 'Need to buy milk, eggs, and bread',
+        status: STATUS.PLANNED,
+        priority: 3,
+        listId: '550e8400-e29b-41d4-a716-446655440000',
+        targetDate: '2026-03-10',
+      };
+
+      mockItemsService.findOne.mockResolvedValue(item);
+
+      await request(app.getHttpServer())
+        .get(`/items/${itemId}`)
+        .set('Authorization', 'Bearer owner-token')
+        .expect(200)
+        .expect(item);
+
+      expect(mockItemsService.findOne).toHaveBeenCalledWith(
+        itemId,
+        expect.objectContaining({ id: 'owner-user-id' }),
+      );
     });
   });
 

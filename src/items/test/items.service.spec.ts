@@ -93,6 +93,100 @@ describe('ItemsService', () => {
     expect(mockItemRepository.save).not.toHaveBeenCalled();
   });
 
+  it('should return only items owned by the current user', async () => {
+    const currentUser = {
+      id: 'user-uuid',
+      roles: [{ name: RoleName.USER }],
+    } as User;
+    const items = [
+      {
+        id: 'item-id',
+        list: { userId: currentUser.id },
+      },
+    ] as Item[];
+
+    mockItemRepository.find.mockResolvedValue(items);
+
+    const result = await service.findAll(currentUser);
+
+    expect(mockItemRepository.find).toHaveBeenCalledWith({
+      where: { list: { userId: currentUser.id } },
+    });
+    expect(result).toEqual(items);
+  });
+
+  it('should return items from all users for admins', async () => {
+    const currentUser = {
+      id: 'admin-uuid',
+      roles: [{ name: RoleName.ADMIN }],
+    } as User;
+    const items = [{ id: 'item-id' }] as Item[];
+
+    mockItemRepository.find.mockResolvedValue(items);
+
+    const result = await service.findAll(currentUser);
+
+    expect(mockItemRepository.find).toHaveBeenCalledWith({
+      where: undefined,
+    });
+    expect(result).toEqual(items);
+  });
+
+  it('should return one item only when it belongs to the current user', async () => {
+    const itemId = '550e8400-e29b-41d4-a716-446655440000';
+    const currentUser = {
+      id: 'user-uuid',
+      roles: [{ name: RoleName.USER }],
+    } as User;
+    const item = {
+      id: itemId,
+      list: { userId: currentUser.id },
+    } as Item;
+
+    mockItemRepository.findOne.mockResolvedValue(item);
+
+    const result = await service.findOne(itemId, currentUser);
+
+    expect(mockItemRepository.findOne).toHaveBeenCalledWith({
+      where: { id: itemId, list: { userId: currentUser.id } },
+    });
+    expect(result).toEqual(item);
+  });
+
+  it('should return one item by id for admins', async () => {
+    const itemId = '550e8400-e29b-41d4-a716-446655440000';
+    const currentUser = {
+      id: 'admin-uuid',
+      roles: [{ name: RoleName.ADMIN }],
+    } as User;
+    const item = {
+      id: itemId,
+    } as Item;
+
+    mockItemRepository.findOne.mockResolvedValue(item);
+
+    const result = await service.findOne(itemId, currentUser);
+
+    expect(mockItemRepository.findOne).toHaveBeenCalledWith({
+      where: { id: itemId },
+    });
+    expect(result).toEqual(item);
+  });
+
+  it('should reject when an item does not belong to the current user', async () => {
+    const itemId = '550e8400-e29b-41d4-a716-446655440000';
+    const currentUser = {
+      id: 'user-uuid',
+      roles: [{ name: RoleName.USER }],
+    } as User;
+
+    mockItemRepository.findOne.mockResolvedValue(null);
+
+    await expect(service.findOne(itemId, currentUser)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
   it('should update only the item status', async () => {
     const item = {
       id: '550e8400-e29b-41d4-a716-446655440000',
