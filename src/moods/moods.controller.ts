@@ -30,14 +30,17 @@ export class MoodsController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.moodsService.findAll();
+  findAll(@CurrentUser() currentUser: User) {
+    return this.moodsService.findAll(currentUser);
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.moodsService.findOne(id);
+  findOne(
+    @CurrentUser() currentUser: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.moodsService.findOne(id, currentUser);
   }
 
   @Patch(':id')

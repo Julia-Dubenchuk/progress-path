@@ -68,7 +68,7 @@ describe('ListsController', () => {
 
       expect(result).toBe(ownedLists);
       expect(mockListsService.findAll).toHaveBeenCalledTimes(1);
-      expect(mockListsService.findAll).toHaveBeenCalledWith(user.id, 1, 10);
+      expect(mockListsService.findAll).toHaveBeenCalledWith(user, 1, 10);
     });
 
     it('passes pagination params to the service', async () => {
@@ -87,7 +87,7 @@ describe('ListsController', () => {
 
       const result = await controller.findAll(user, { page: 2, limit: 5 });
 
-      expect(mockListsService.findAll).toHaveBeenCalledWith(user.id, 2, 5);
+      expect(mockListsService.findAll).toHaveBeenCalledWith(user, 2, 5);
       expect(result).toBe(paginatedResponse);
     });
   });
@@ -112,7 +112,7 @@ describe('ListsController', () => {
 
       expect(result).toBe(ownedList);
       expect(mockListsService.findOne).toHaveBeenCalledTimes(1);
-      expect(mockListsService.findOne).toHaveBeenCalledWith(listId, user.id);
+      expect(mockListsService.findOne).toHaveBeenCalledWith(listId, user);
     });
   });
 });

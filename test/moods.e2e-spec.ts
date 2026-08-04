@@ -191,7 +191,42 @@ describe('MoodsController (e2e)', () => {
         .expect(200)
         .expect(moods);
 
-      expect(mockMoodsService.findAll).toHaveBeenCalled();
+      expect(mockMoodsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'regular-user-id' }),
+      );
+    });
+  });
+
+  describe('GET /moods/:id', () => {
+    const moodId = '550e8400-e29b-41d4-a716-446655440000';
+
+    it('returns 401 when no token is provided', async () => {
+      await request(app.getHttpServer()).get(`/moods/${moodId}`).expect(401);
+
+      expect(mockMoodsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 when a valid token is provided', async () => {
+      const mood = {
+        id: moodId,
+        mood: 'happy',
+        note: 'Had a productive day and felt energized.',
+        date: '2026-02-18',
+        userId: 'regular-user-id',
+      };
+
+      mockMoodsService.findOne.mockResolvedValue(mood);
+
+      await request(app.getHttpServer())
+        .get(`/moods/${moodId}`)
+        .set('Authorization', 'Bearer user-token')
+        .expect(200)
+        .expect(mood);
+
+      expect(mockMoodsService.findOne).toHaveBeenCalledWith(
+        moodId,
+        expect.objectContaining({ id: 'regular-user-id' }),
+      );
     });
   });
 });

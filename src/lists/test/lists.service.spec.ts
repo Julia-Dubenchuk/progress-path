@@ -3,6 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ListsService } from '../lists.service';
 import { List } from '../entities/list.entity';
+import { RoleName } from '../../roles/entities/role.entity';
+import { User } from '../../users/entities/user.entity';
 
 describe('ListsService', () => {
   let service: ListsService;
@@ -17,6 +19,8 @@ describe('ListsService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ListsService,
@@ -35,14 +39,17 @@ describe('ListsService', () => {
   });
 
   it('returns paginated lists scoped to the current user', async () => {
-    const userId = 'user-uuid';
+    const currentUser = {
+      id: 'user-uuid',
+      roles: [{ name: RoleName.USER }],
+    } as User;
     const lists = [{ id: 'list-2' }, { id: 'list-1' }] as List[];
     mockListRepository.findAndCount.mockResolvedValue([lists, 5]);
 
-    const result = await service.findAll(userId, 2, 2);
+    const result = await service.findAll(currentUser, 2, 2);
 
     expect(mockListRepository.findAndCount).toHaveBeenCalledWith({
-      where: { userId },
+      where: { userId: currentUser.id },
       order: { createdAt: 'DESC' },
       skip: 2,
       take: 2,
@@ -60,10 +67,32 @@ describe('ListsService', () => {
     });
   });
 
+  it('returns paginated lists from all users for admins', async () => {
+    const currentUser = {
+      id: 'admin-uuid',
+      roles: [{ name: RoleName.ADMIN }],
+    } as User;
+    const lists = [{ id: 'list-2' }, { id: 'list-1' }] as List[];
+    mockListRepository.findAndCount.mockResolvedValue([lists, 5]);
+
+    await service.findAll(currentUser, 2, 2);
+
+    expect(mockListRepository.findAndCount).toHaveBeenCalledWith({
+      where: undefined,
+      order: { createdAt: 'DESC' },
+      skip: 2,
+      take: 2,
+    });
+  });
+
   it('returns both navigation flags as false when total is 0', async () => {
+    const currentUser = {
+      id: 'user-uuid',
+      roles: [{ name: RoleName.USER }],
+    } as User;
     mockListRepository.findAndCount.mockResolvedValue([[], 0]);
 
-    const result = await service.findAll('user-uuid', 2, 5);
+    const result = await service.findAll(currentUser, 2, 5);
 
     expect(result.meta).toMatchObject({
       total: 0,
@@ -73,11 +102,34 @@ describe('ListsService', () => {
     });
   });
 
-  it('throws when a list is not found', async () => {
+  it("returns 404 when a regular user requests another user's list", async () => {
+    const currentUser = {
+      id: 'user-uuid',
+      roles: [{ name: RoleName.USER }],
+    } as User;
     mockListRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne('missing-id', 'user-uuid')).rejects.toThrow(
-      new NotFoundException('List with id missing-id not found'),
+    await expect(service.findOne('other-list-id', currentUser)).rejects.toThrow(
+      new NotFoundException('List with id other-list-id not found'),
     );
+    expect(mockListRepository.findOne).toHaveBeenCalledWith({
+      where: { id: 'other-list-id', userId: currentUser.id },
+    });
+  });
+
+  it('finds one list by id only for admins', async () => {
+    const currentUser = {
+      id: 'admin-uuid',
+      roles: [{ name: RoleName.ADMIN }],
+    } as User;
+    const list = { id: 'list-id' } as List;
+    mockListRepository.findOne.mockResolvedValue(list);
+
+    const result = await service.findOne(list.id, currentUser);
+
+    expect(mockListRepository.findOne).toHaveBeenCalledWith({
+      where: { id: list.id },
+    });
+    expect(result).toBe(list);
   });
 });

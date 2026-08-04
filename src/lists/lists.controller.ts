@@ -39,7 +39,7 @@ export class ListsController {
     paginationQuery: ListPaginationQueryDto,
   ) {
     return this.listsService.findAll(
-      user.id,
+      user,
       paginationQuery.page,
       paginationQuery.limit,
     );
@@ -48,7 +48,7 @@ export class ListsController {
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
-    return this.listsService.findOne(id, user.id);
+    return this.listsService.findOne(id, user);
   }
 
   @Patch(':id')

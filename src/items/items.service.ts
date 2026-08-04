@@ -10,8 +10,11 @@ import { UpdateItemDto } from './dto/update-item.dto';
 import { UpdateItemStatusDto } from './dto/update-item-status.dto';
 import { Item } from './entities/item.entity';
 import { User } from '../users/entities/user.entity';
-import { RoleName } from '../roles/entities/role.entity';
 import { List } from '../lists/entities/list.entity';
+import {
+  getOwnerScopedWhere,
+  isAdminUser,
+} from '../common/authorization/owner-scoped-query.util';
 
 @Injectable()
 export class ItemsService {
@@ -32,12 +35,26 @@ export class ItemsService {
     return this.itemRepository.save(newItem);
   }
 
-  findAll(): Promise<Item[]> {
-    return this.itemRepository.find();
+  findAll(currentUser: User): Promise<Item[]> {
+    const where = getOwnerScopedWhere(currentUser, {
+      list: { userId: currentUser.id },
+    });
+
+    return this.itemRepository.find({
+      where,
+    });
   }
 
-  async findOne(id: string): Promise<Item> {
-    const item = await this.itemRepository.findOne({ where: { id } });
+  async findOne(id: string, currentUser: User): Promise<Item> {
+    const where = getOwnerScopedWhere(
+      currentUser,
+      { id, list: { userId: currentUser.id } },
+      { id },
+    );
+
+    const item = await this.itemRepository.findOne({
+      where,
+    });
 
     if (!item) {
       throw new NotFoundException(`Item with id ${id} not found`);
@@ -47,7 +64,7 @@ export class ItemsService {
   }
 
   async update(id: string, updateItemDto: UpdateItemDto): Promise<Item> {
-    const item = await this.findOne(id);
+    const item = await this.findOneById(id);
 
     if (updateItemDto.listId) {
       await this.ensureListExists(updateItemDto.listId);
@@ -72,9 +89,7 @@ export class ItemsService {
       throw new NotFoundException(`Item with id ${id} not found`);
     }
 
-    const isAdmin = currentUser.roles?.some(
-      (role) => role.name === RoleName.ADMIN,
-    );
+    const isAdmin = isAdminUser(currentUser);
     const isListOwner = item.list?.userId === currentUser.id;
 
     if (!isAdmin && !isListOwner) {
@@ -104,5 +119,15 @@ export class ItemsService {
     if (!list) {
       throw new NotFoundException(`List with id ${listId} not found`);
     }
+  }
+
+  private async findOneById(id: string): Promise<Item> {
+    const item = await this.itemRepository.findOne({ where: { id } });
+
+    if (!item) {
+      throw new NotFoundException(`Item with id ${id} not found`);
+    }
+
+    return item;
   }
 }

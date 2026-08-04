@@ -45,6 +45,29 @@ describe('ItemsController', () => {
     expect(controller).toBeDefined();
   });
 
+  it('should delegate item list reads with the current user id', async () => {
+    const currentUser = { id: 'user-1' } as User;
+    const items = [{ id: 'item-id' }] as Item[];
+    const findAllSpy = jest.spyOn(service, 'findAll').mockResolvedValue(items);
+
+    const result = await controller.findAll(currentUser);
+
+    expect(findAllSpy).toHaveBeenCalledWith(currentUser);
+    expect(result).toEqual(items);
+  });
+
+  it('should delegate single item reads with the current user id', async () => {
+    const itemId = '550e8400-e29b-41d4-a716-446655440000';
+    const currentUser = { id: 'user-1' } as User;
+    const item = { id: itemId } as Item;
+    const findOneSpy = jest.spyOn(service, 'findOne').mockResolvedValue(item);
+
+    const result = await controller.findOne(currentUser, itemId);
+
+    expect(findOneSpy).toHaveBeenCalledWith(itemId, currentUser);
+    expect(result).toEqual(item);
+  });
+
   it('should delegate item status updates to the service', async () => {
     const itemId = '550e8400-e29b-41d4-a716-446655440000';
     const updateItemStatusDto = { status: STATUS.IN_PROGRESS };

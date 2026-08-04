@@ -47,8 +47,8 @@ export class ItemsController {
   @ApiOperation({ summary: 'Get all items' })
   @ApiResponse({ status: 200, description: 'Return all items.' })
   @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.itemsService.findAll();
+  findAll(@CurrentUser() currentUser: User) {
+    return this.itemsService.findAll(currentUser);
   }
 
   @Get(':id')
@@ -56,8 +56,11 @@ export class ItemsController {
   @ApiParam({ name: 'id', description: 'Item ID' })
   @ApiResponse({ status: 200, description: 'Return the item.' })
   @UseGuards(JwtAuthGuard)
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.itemsService.findOne(id);
+  findOne(
+    @CurrentUser() currentUser: User,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.itemsService.findOne(id, currentUser);
   }
 
   @Patch(':id/status')
