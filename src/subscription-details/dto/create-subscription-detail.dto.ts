@@ -8,7 +8,7 @@ import {
 export class CreateSubscriptionDetailDto {
   @ApiProperty({ enum: SubscriptionType })
   @IsEnum(SubscriptionType)
-  type: SubscriptionType;
+  type!: SubscriptionType;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -23,22 +23,22 @@ export enum RoleName {
 @Entity('roles')
 export class Role {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'enum', enum: RoleName, unique: true })
-  name: RoleName;
+  name!: RoleName;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ManyToMany(() => User, (user) => user.roles)
-  users: User[];
+  users!: User[];
 
   @ManyToMany(() => Permission, (permission) => permission.roles, {
     cascade: true,
@@ -48,5 +48,5 @@ export class Role {
     joinColumn: { name: 'roleId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'permissionId', referencedColumnName: 'id' },
   })
-  permissions: Permission[];
+  permissions!: Permission[];
 }

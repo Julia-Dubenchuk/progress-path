@@ -19,11 +19,11 @@ export enum ActivitySource {
 @Entity('activity_logs')
 export class ActivityLog {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Index()
   @Column()
-  action: string;
+  action!: string;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
@@ -45,9 +45,9 @@ export class ActivityLog {
   meta?: Record<string, any> | null;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @ManyToOne(() => User, (user) => user.activityLogs)
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user!: User;
 }

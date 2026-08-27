@@ -21,7 +21,7 @@ export class CreateUserDto {
   })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'The username of the user',
@@ -29,7 +29,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  username: string;
+  username!: string;
 
   @ApiPropertyOptional({
     description: 'User first name',
@@ -58,7 +58,7 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
-  password: string;
+  password!: string;
 
   @ApiPropertyOptional({
     description: 'Google ID for OAuth users (optional)',

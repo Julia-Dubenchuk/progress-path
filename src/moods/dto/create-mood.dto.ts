@@ -8,7 +8,7 @@ export class CreateMoodDto {
   })
   @IsString()
   @MaxLength(50)
-  mood: string;
+  mood!: string;
 
   @ApiPropertyOptional({
     description: 'Optional note about the mood',
@@ -23,5 +23,5 @@ export class CreateMoodDto {
     example: '2026-02-18',
   })
   @IsDateString()
-  date: Date;
+  date!: Date;
 }

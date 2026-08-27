@@ -42,7 +42,7 @@ export class UserProfilesService {
     } catch (error) {
       this.logger.error(`Failed to create profile`, {
         context: UserProfilesService.name,
-        meta: error,
+        meta: { error },
       });
       throw new InternalServerErrorException('Failed to create profile');
     }
@@ -193,7 +193,7 @@ export class UserProfilesService {
     } catch (error) {
       this.logger.error(`Failed to update profile picture for user ${id}`, {
         context: UserProfilesService.name,
-        meta: error,
+        meta: { error },
       });
       throw new InternalServerErrorException(
         'Failed to update profile picture',

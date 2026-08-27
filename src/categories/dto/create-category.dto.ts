@@ -5,7 +5,7 @@ import { CategoryTitle } from '../entities/category.entity';
 export class CreateCategoryDto {
   @ApiProperty({ enum: CategoryTitle })
   @IsEnum(CategoryTitle)
-  title: CategoryTitle;
+  title!: CategoryTitle;
 
   @ApiPropertyOptional({
     description: 'Optional category description',

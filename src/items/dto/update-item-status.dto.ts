@@ -9,5 +9,5 @@ export class UpdateItemStatusDto {
     example: STATUS.IN_PROGRESS,
   })
   @IsEnum(STATUS)
-  status: STATUS;
+  status!: STATUS;
 }

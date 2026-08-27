@@ -9,17 +9,17 @@ export enum Theme {
 @Entity('user_preferences')
 export class UserPreference {
   @PrimaryColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'enum', enum: Theme, default: Theme.LIGHT })
-  theme: string;
+  theme!: string;
 
   @Column({ nullable: true })
-  notificationSettings: string;
+  notificationSettings!: string;
 
   @Column({ nullable: true })
-  language: string;
+  language!: string;
 
   @OneToOne(() => User, (user) => user.preference)
-  user: User;
+  user!: User;
 }

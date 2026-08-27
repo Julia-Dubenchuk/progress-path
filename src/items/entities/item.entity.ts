@@ -13,36 +13,36 @@ import { List } from '../../lists/entities/list.entity';
 @Entity('items')
 export class Item {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  title: string;
+  title!: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @Column({ type: 'enum', enum: STATUS })
-  status: STATUS;
+  status!: STATUS;
 
   @Column({ type: 'int' })
-  priority: number;
+  priority!: number;
 
   @Column('uuid')
-  listId: string;
+  listId!: string;
 
   @Column({ type: 'date', nullable: true })
-  targetDate: Date;
+  targetDate!: Date;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ManyToOne(() => List, (list) => list.items, {
     nullable: false,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'listId' })
-  list: List;
+  list!: List;
 }

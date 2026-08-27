@@ -19,7 +19,7 @@ export class CreateItemDto {
   })
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @ApiProperty({
     description: 'The description of the item',
@@ -36,7 +36,7 @@ export class CreateItemDto {
     example: STATUS.PLANNED,
   })
   @IsEnum(STATUS)
-  status: STATUS;
+  status!: STATUS;
 
   @ApiProperty({
     description: 'Priority value from 1 (low) to 5 (high)',
@@ -45,14 +45,14 @@ export class CreateItemDto {
   @IsInt()
   @Min(1)
   @Max(5)
-  priority: number;
+  priority!: number;
 
   @ApiProperty({
     description: 'List id to which this item belongs',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsUUID()
-  listId: string;
+  listId!: string;
 
   @ApiProperty({
     description: 'Optional target date',
