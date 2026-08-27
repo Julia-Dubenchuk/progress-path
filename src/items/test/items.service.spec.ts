@@ -63,7 +63,7 @@ describe('ItemsService', () => {
 
     mockListRepository.findOne.mockResolvedValue({
       id: createItemDto.listId,
-    } as List);
+    });
     mockItemRepository.create.mockReturnValue(createdItem);
     mockItemRepository.save.mockResolvedValue(createdItem);
 
