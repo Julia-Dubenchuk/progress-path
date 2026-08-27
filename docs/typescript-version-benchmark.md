@@ -186,15 +186,64 @@ behaves identically.
 it forces the `baseUrl` removal that 7.0 requires anyway, and its stricter defaults
 surfaced a real latent bug (see below). It is the stepping stone, not the destination.
 
-**7.0.2 is not yet adoptable as this project's build compiler**, purely because
-`nest build` cannot drive it. It is already useful today as a fast pre-commit or CI
-type-check gate, where a 2.5 s check becomes 0.33 s:
+**7.0.2 is adoptable today for build and type-check** — but not by making it the only
+compiler. See "Adopting 7.0.2 side by side" below.
 
-```bash
-npx tsc -p tsconfig.json --noEmit    # with typescript@7.0.2 installed
+## Adopting 7.0.2 side by side
+
+Making 7.0.2 the project's only compiler does not work. TypeScript 7 removed the
+classic compiler API — `require('typescript')` now returns just
+`{ version, versionMajorMinor }` — so every tool that drives the compiler
+programmatically breaks: `@nestjs/cli`, `ts-jest`, `ts-node`, `ts-node-dev` and
+`typescript-eslint`. That is **14 of 26 npm scripts**. `typescript-eslint@8.68.0`
+detects `major >= 7` and throws on purpose; support is tracked for TS ≥ 7.1 in
+[issue 10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940).
+Upgrading does not help — `@nestjs/cli@12.0.0`, the current release, still calls
+`getParsedCommandLineOfConfigFile`.
+
+The 7.0 announcement documents a side-by-side layout instead, which this project now
+uses (commit `e4079be`):
+
+```json
+{
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "@typescript/native": "npm:typescript@^7.0.2"
+  }
+}
 ```
 
-Revisit the build path when `@nestjs/cli` supports the native compiler API.
+`typescript` stays the package everything resolves through, so the existing toolchain
+is untouched. `@typescript/native` supplies the native binary for the paths that
+benefit. Both ship a `tsc` bin, so the scripts address the native one by path rather
+than relying on which npm links:
+
+```json
+{
+  "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+  "build": "node node_modules/@typescript/native/bin/tsc -p tsconfig.build.json",
+  "typecheck": "node node_modules/@typescript/native/bin/tsc -p tsconfig.json --noEmit"
+}
+```
+
+`nest build` is replaced by a direct native `tsc` call — the CLI cannot drive 7.0.2,
+and `nest-cli.json` configures nothing beyond `deleteOutDir`, which `prebuild` covers.
+It remains available as `build:nest` on the TS 6 path.
+
+Measured on this layout:
+
+| Command             |                 Before |      After |      Gain |
+| ------------------- | ---------------------: | ---------: | --------: |
+| `npm run build`     | 4511 ms (`nest build`) | **408 ms** | **11.1×** |
+| `npm run typecheck` |         2706 ms (TS 6) | **427 ms** |  **6.3×** |
+
+Verified: the native build emits 141 files carrying the same 243 `design:type`
+entries, the app boots and maps 81 routes, `nest build` still succeeds, 26 suites /
+50 tests pass, type-aware lint and prettier are clean, and `npm ci` reproduces the
+layout.
+
+Revisit collapsing to a single compiler when `typescript-eslint` and `@nestjs/cli`
+support the TS 7 API.
 
 ### Latent bug surfaced by the migration
 
