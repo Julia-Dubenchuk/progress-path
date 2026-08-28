@@ -1,17 +1,17 @@
 # TypeScript 5.8.2 → 6.0.3 → 7.0.2 on progress-path
 
-How much faster is TypeScript 7.0.2 on this project, and how does TypeScript 6.0
+How much faster is TypeScript 7.0.2 on this project, and how does TypeScript 6.0.3
 compare?
 
 ## Answer
 
-**TypeScript 7.0.2 type-checks this project 7.6× faster** — 2511 ms drops to 332 ms.
-Full emit is 8.0× faster and warm rebuilds 6.7× faster, using 28% less memory.
+**TypeScript 7.0.2 type-checks this project 8.2× faster** — 2607 ms drops to 317 ms.
+Full emit is 8.4× faster and warm rebuilds 6.7× faster, using ~30% less memory.
 
-**TypeScript 6.0.3 is not faster. It is 3–6% slower** than 5.8.2 across every
-scenario. That is expected: 6.0 is the release that sheds deprecated options and
-tightens defaults, not the one that rewrites the compiler. The speed story belongs
-entirely to 7.0.
+**TypeScript 6.0.3 is not a speed change in either direction.** It lands 1% behind
+5.8.2, which is inside this machine's run-to-run noise — the two are indistinguishable
+here. That is expected: 6.0.3 sheds deprecated options and tightens defaults, it does
+not rewrite the compiler. The speed story belongs entirely to 7.0.2.
 
 One caveat decides whether you can act on this today: neither 6.0.3 nor 7.0.2 could
 compile this project as it was configured. Reaching these numbers required a real
@@ -59,16 +59,16 @@ Node:         v22.14.0
 npm:          10.9.2
 ```
 
-Subject: this repository at commit `6285ce7` — 173 `.ts` files, ~10,064 lines of own
-source, pulling 2570 files and ~189,000 lines of type definitions into the program.
+Subject: this repository at commit `6285ce7` — 173 `.ts` files, 10,064 lines of own
+source, pulling ~2,570 files and ~178,000 lines of type definitions into the program.
 
 ## Versions tested
 
-| Requested | Tested    | Note                                                                                                    |
-| --------- | --------- | ------------------------------------------------------------------------------------------------------- |
-| 5.8.2     | 5.8.2     | The version this project pinned. JS compiler.                                                           |
-| 6.0       | **6.0.3** | `typescript@6.0.0` was never published — npm only has 6.0.2 and 6.0.3. 6.0.3 is the newest in the line. |
-| 7.0.2     | 7.0.2     | Current `latest`. The native (Go) compiler.                                                             |
+| Version | Note                                          |
+| ------- | --------------------------------------------- |
+| 5.8.2   | The version this project pinned. JS compiler. |
+| 6.0.3   | Newest of the 6.0.x line. JS compiler.        |
+| 7.0.2   | Current `latest`. The native (Go) compiler.   |
 
 TypeScript 7 ships differently: the `typescript` package is a 3.6 MB shim that pulls a
 platform binary (`@typescript/typescript-linux-x64`, 27 MB) as a separate dependency,
@@ -88,9 +88,9 @@ that is fast.
 All three figures above are _post-migration_. Before it, 6.0.3 produced 118 errors and
 7.0.2 could not run either.
 
-### What 6.0 broke
+### What 6.0.3 broke
 
-TypeScript 6.0 derives the strict-family defaults from `strictNullChecks` instead of
+TypeScript 6.0.3 derives the strict-family defaults from `strictNullChecks` instead of
 `strict`, and turns deprecated options into hard errors:
 
 | Change                                | Errors                        | Fix applied                                                                                                                                         |
@@ -99,67 +99,73 @@ TypeScript 6.0 derives the strict-family defaults from `strictNullChecks` instea
 | `strictPropertyInitialization` now on | 114 × `TS2564`                | Definite-assignment assertions on entity and DTO properties, which TypeORM and class-transformer populate rather than constructors.                 |
 | `useUnknownInCatchVariables` now on   | 3 × `TS2322`                  | `catch` bindings are `unknown`; logger calls now wrap as `{ error }`.                                                                               |
 
-7.0.2 needed no further changes beyond the 6.0 migration.
+7.0.2 needed no further changes beyond the 6.0.3 migration.
 
 ## Results
 
 10 runs per scenario per version, all exiting cleanly. Median milliseconds:
 
-| Scenario         |  5.8.2 |  6.0.3 |     7.0.2 | 7.0.2 speedup |    6.0.3 vs 5.8.2 |
-| ---------------- | -----: | -----: | --------: | ------------: | ----------------: |
-| Cold type-check  | 2511.5 | 2665.0 | **332.0** |     **7.56×** | 0.94× (6% slower) |
-| Cold full emit   | 2648.0 | 2757.5 | **331.5** |     **7.99×** | 0.96× (4% slower) |
-| Warm incremental | 1699.5 | 1747.5 | **254.0** |     **6.69×** | 0.97× (3% slower) |
+| Scenario         |  5.8.2 |  6.0.3 |     7.0.2 | 7.0.2 speedup | 6.0.3 vs 5.8.2 |
+| ---------------- | -----: | -----: | --------: | ------------: | -------------: |
+| Cold type-check  | 2606.5 | 2632.5 | **316.5** |     **8.24×** | 0.99× (+26 ms) |
+| Cold full emit   | 2786.0 | 2816.0 | **333.5** |     **8.35×** | 0.99× (+30 ms) |
+| Warm incremental | 1727.0 | 1736.0 | **259.0** |     **6.67×** |  1.00× (+9 ms) |
 
 Spread (min / mean / stddev, ms):
 
-| Version | Scenario         |    min |   mean | stddev |
-| ------- | ---------------- | -----: | -----: | -----: |
-| 5.8.2   | cold type-check  | 2454.0 | 2527.1 |   47.2 |
-| 5.8.2   | cold emit        | 2565.0 | 2674.9 |   92.5 |
-| 5.8.2   | warm incremental | 1634.0 | 1719.7 |   54.0 |
-| 6.0.3   | cold type-check  | 2566.0 | 2675.6 |   80.1 |
-| 6.0.3   | cold emit        | 2703.0 | 2788.3 |   66.4 |
-| 6.0.3   | warm incremental | 1623.0 | 1737.2 |   74.3 |
-| 7.0.2   | cold type-check  |  318.0 |  331.0 |    7.7 |
-| 7.0.2   | cold emit        |  296.0 |  326.5 |   16.1 |
-| 7.0.2   | warm incremental |  243.0 |  253.1 |    5.3 |
+| Version | Scenario         |    min |   mean | stddev |  sd % |
+| ------- | ---------------- | -----: | -----: | -----: | ----: |
+| 5.8.2   | cold type-check  | 2524.0 | 2626.1 |   92.2 |  3.5% |
+| 5.8.2   | cold emit        | 2714.0 | 2791.3 |   61.7 |  2.2% |
+| 5.8.2   | warm incremental | 1676.0 | 1730.5 |   33.3 |  1.9% |
+| 6.0.3   | cold type-check  | 2596.0 | 2657.5 |   64.3 |  2.4% |
+| 6.0.3   | cold emit        | 2733.0 | 2830.0 |   68.7 |  2.4% |
+| 6.0.3   | warm incremental | 1667.0 | 1737.7 |   38.7 |  2.2% |
+| 7.0.2   | cold type-check  |  307.0 |  319.9 |   13.4 |  4.2% |
+| 7.0.2   | cold emit        |  309.0 |  344.8 |   39.6 | 11.9% |
+| 7.0.2   | warm incremental |  244.0 |  263.4 |   20.1 |  7.8% |
 
-Stddev stays under 4% of median everywhere, so the 6% gap between 5.8.2 and 6.0.3 is
-outside noise, and the 7.0.2 gap is not close to arguable.
+**The 5.8.2 / 6.0.3 gap is not resolvable at this precision.** The largest difference
+between them is 30 ms, against standard deviations of 62–92 ms on the same runs. Treat
+them as equal; do not read the 1% column as a regression.
 
-Note that 7.0.2's _warm incremental_ rebuild (254 ms) is barely faster than its _cold_
-type-check (332 ms). The native compiler is fast enough that incremental state has
+The 7.0.2 gap needs no such care — it is 8× on medians whose entire spread is 13–40 ms.
+7.0.2's percentages look worse only because its medians are ten times smaller: a single
+449 ms outlier in the cold-emit series produces that 11.9%, while 5.8.2's tighter-looking
+2.2% is a wider ±62 ms in absolute terms.
+
+Note that 7.0.2's _warm incremental_ rebuild (259 ms) is barely faster than its _cold_
+type-check (317 ms). The native compiler is fast enough that incremental state has
 almost nothing left to save — worth remembering before investing in build caching.
 
 ## Where the time goes
 
 | Phase     |      5.8.2 |      6.0.3 |       7.0.2 |
 | --------- | ---------: | ---------: | ----------: |
-| Parse     |     0.70 s |     0.68 s |     0.107 s |
-| Bind      |     0.30 s |     0.31 s |     0.024 s |
-| Check     |     0.88 s |     0.89 s |     0.113 s |
-| Emit      |     0.00 s |     0.00 s |     0.007 s |
-| **Total** | **2.31 s** | **2.30 s** | **0.291 s** |
+| Parse     |     0.65 s |     0.71 s |     0.108 s |
+| Bind      |     0.29 s |     0.34 s |     0.045 s |
+| Check     |     0.93 s |     1.02 s |     0.089 s |
+| Emit      |     0.00 s |     0.00 s |     0.024 s |
+| **Total** | **2.32 s** | **2.51 s** | **0.308 s** |
 
-The gain is broad, not concentrated: parse 6.5×, bind 12.5×, check 7.8×. This is a
+The gain is broad, not concentrated: parse 6.0×, bind 6.4×, check 10.4×. This is a
 different implementation of the same work, not one hot path being optimised.
 
 `Types` and `Instantiations` counts are _not_ comparable across the major versions —
-5.8.2 reports 19,739 / 42,474 where 7.0.2 reports 40,467 / 62,740. The native port
+5.8.2 reports 19,737 / 42,474 where 7.0.2 reports 40,465 / 62,740. The native port
 accounts for them differently. Only wall-clock and memory compare directly.
 
 ## Memory
 
 Peak RSS, MB:
 
-| Scenario         | 5.8.2 | 6.0.3 |     7.0.2 |
-| ---------------- | ----: | ----: | --------: |
-| Cold type-check  | 367.9 | 371.3 | **264.1** |
-| Cold emit        | 369.0 | 378.7 | **254.4** |
-| Warm incremental | 322.2 | 328.5 | **214.0** |
+| Scenario         | 5.8.2 | 6.0.3 |     7.0.2 | 7.0.2 saving |
+| ---------------- | ----: | ----: | --------: | -----------: |
+| Cold type-check  | 351.3 | 356.4 | **248.1** |        −29 % |
+| Cold emit        | 354.1 | 361.9 | **242.5** |        −32 % |
+| Warm incremental | 309.3 | 314.3 | **214.0** |        −31 % |
 
-7.0.2 uses ~28% less memory while running ~7.6× faster.
+7.0.2 uses ~30% less memory while running ~8× faster.
 
 ## Output correctness
 
@@ -175,13 +181,22 @@ behaves identically.
 
 ## Threats to validity
 
-- **Small project.** At ~10k lines of own source, most of the work is the 189k lines
+- **Small project.** At ~10k lines of own source, most of the work is the 178k lines
   of dependency definitions. The native port's advantage generally grows with project
-  size, so 7.6× probably _understates_ what a larger codebase would see.
+  size, so 8.2× probably _understates_ what a larger codebase would see.
 - **`skipLibCheck: true`** means `.d.ts` files are parsed but not fully checked. With
   it off, all three would be slower and the ratio could shift.
 - **Single machine, single run series.** One laptop, one OS, one Node version, no
-  thermal-throttling control beyond keeping the machine otherwise idle.
+  thermal-throttling control beyond keeping the machine otherwise idle. Repeating the
+  whole benchmark on a different day moved individual medians by up to 4%, which is
+  why the 1% gap between 5.8.2 and 6.0.3 is reported as no gap at all.
+- **The measured program depends on what is installed.** Under the earlier
+  side-by-side layout, `ts-node`'s `import type * as _ts from 'typescript'` pulled
+  TypeScript 6.0.3's own 11,448-line `lib/typescript.d.ts` into the program. TS 7's
+  package does not ship that file, so removing 6.0.3 shrank the type graph by ~11k
+  lines (~4%). Every number here was re-measured on the current single-compiler tree
+  so all three versions see the same program; do not mix these figures with ones taken
+  before that change.
 - **No editor measurement.** 7.0.2's package ships no `tsserver`, so IDE
   responsiveness — arguably what you feel most — is untested here.
 - The numbers describe the migrated codebase. They are not what you would have
@@ -190,9 +205,10 @@ behaves identically.
 
 ## Recommendation
 
-**Do not adopt 6.0.3 for speed** — it is slower. Adopt it for the migration itself:
-it forces the `baseUrl` removal that 7.0 requires anyway, and its stricter defaults
-surfaced a real latent bug (see below). It is the stepping stone, not the destination.
+**Do not adopt 6.0.3 for speed** — there is none to gain; it measures the same as
+5.8.2. Adopt it for the migration itself: it forces the `baseUrl` removal that 7.0
+requires anyway, and its stricter defaults surfaced a real latent bug (see below). It
+is the stepping stone, not the destination.
 
 **7.0.2 is the fastest compiler available for this project by a wide margin**, and
 its output is correct. Whether you can adopt it depends entirely on the toolchain
@@ -253,9 +269,9 @@ to 547 ms — **8.1×** — with the full test and lint suites still passing.
 | `npm run build:tsc` | **554 ms** |
 | `npm run typecheck` | **331 ms** |
 
-`build:tsc` sits above the 331.5 ms raw cold-emit median because it also pays for two
+`build:tsc` sits above the 333.5 ms raw cold-emit median because it also pays for two
 npm lifecycle spawns (`prebuild:tsc` plus the script itself). Compiler against
-compiler, the ratio is the 8.0× in the results table.
+compiler, the ratio is the 8.35× in the results table.
 
 Verified on this configuration: `tsc --version` reports 7.0.2, `build:tsc` emits 141
 files carrying the same 243 `design:type` entries as 5.8.2 and 6.0.3, and `typecheck`
