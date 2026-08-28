@@ -10,7 +10,9 @@ npm run start:dev          # watch mode via nest CLI
 npm run start:local        # ts-node-dev with hot reload (faster cold start)
 
 # Build & lint
-npm run build              # nest build → dist/
+npm run build              # nest build → dist/ (TypeScript 6.0.3, via the Nest CLI)
+npm run build:tsc          # direct tsc → dist/ (TypeScript 7.0.2 native, ~8x faster)
+npm run typecheck          # tsc --noEmit (TypeScript 7.0.2 native)
 npm run lint               # ESLint with auto-fix
 npm run format             # Prettier on src/ and test/
 

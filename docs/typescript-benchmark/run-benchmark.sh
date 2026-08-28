@@ -8,13 +8,18 @@
 # Example:
 #   bash docs/typescript-benchmark/run-benchmark.sh 5.8.2
 #
-# Measures four scenarios (cold typecheck, cold emit, warm incremental,
-# nest build) for the given TypeScript version, after a compatibility gate.
-# Lane A (tsc scenarios 1-3) installs the compiler into an isolated npm
-# prefix and never touches the project's own node_modules/package files.
-# Lane B (nest build, scenario 4) temporarily swaps the ROOT
-# node_modules/typescript to the version under test (nest-cli resolves
-# typescript relative to cwd), and always restores it on exit.
+# Measures three TypeScript compilation scenarios (cold typecheck, cold emit,
+# warm incremental) for the given version, after a compatibility gate.
+#
+# The compiler under test installs into an isolated npm prefix and is invoked
+# by absolute path against the project's real tsconfig. The project's own
+# node_modules, package.json and package-lock.json are never touched, so all
+# three versions compile a byte-identical dependency tree.
+#
+# The Nest CLI build pipeline is deliberately out of scope: `nest build` layers
+# CLI startup, config loading and file-watching setup on top of compilation, and
+# it cannot run TypeScript 7 at all (the native port removed the JS compiler API
+# the CLI drives). Measuring it would compare toolchains, not compilers.
 
 set -euo pipefail
 
@@ -51,62 +56,6 @@ fi
 if [[ ! -f "$PEAK_RSS_CSV" ]]; then
   echo "version,scenario,rss_kb" > "$PEAK_RSS_CSV"
 fi
-
-# ---------------------------------------------------------------------------
-# Root compiler swap (Lane B) — always restore on exit, even on failure/Ctrl-C
-# ---------------------------------------------------------------------------
-
-ORIGINAL_TS_VERSION="$(node -p "require('./node_modules/typescript/package.json').version")"
-ROOT_TS_BACKUP="$REPO_ROOT/node_modules/.typescript-benchmark-backup"
-LANE_B_ADDED_LIST="$BENCH_DIR/tmp-out/lane-b-added-${VERSION}.txt"
-
-# Lane B swaps the compiler by moving directories, NOT by `npm install`.
-# `npm install --no-save --no-package-lock typescript@X` makes npm ignore the
-# lockfile and re-resolve the whole tree, so unrelated packages (eslint, glob,
-# rimraf, @nestjs/cli) can drift between versions — which would silently make
-# the nest-build comparison not apples-to-apples. Moving just the typescript
-# directory keeps every other dependency byte-identical across all three runs.
-swap_root_ts() {
-  local src="$COMPILERS_DIR/ts-${VERSION}/node_modules"
-  [[ -d "$src/typescript" ]] || { echo "FATAL: no isolated install for ${VERSION}" >&2; return 1; }
-
-  [[ -d "$ROOT_TS_BACKUP" ]] || mv node_modules/typescript "$ROOT_TS_BACKUP"
-  rm -rf node_modules/typescript
-  cp -a "$src/typescript" node_modules/typescript
-
-  # TypeScript 7 ships its native compiler as separate platform packages
-  # (e.g. @typescript/native-preview-linux-x64). Carry across anything the
-  # isolated install pulled in that the project does not already have, and
-  # remember it so the restore can remove it again.
-  : > "$LANE_B_ADDED_LIST"
-  local entry rel
-  for entry in "$src"/* "$src"/@*/*; do
-    [[ -e "$entry" ]] || continue
-    rel="${entry#"$src"/}"
-    case "$rel" in typescript|.bin|.package-lock.json|@*) [[ "$rel" == @*/* ]] || continue ;; esac
-    if [[ ! -e "node_modules/$rel" ]]; then
-      mkdir -p "node_modules/$(dirname "$rel")"
-      cp -a "$entry" "node_modules/$rel"
-      echo "$rel" >> "$LANE_B_ADDED_LIST"
-    fi
-  done
-}
-
-restore_root_ts() {
-  if [[ -d "$ROOT_TS_BACKUP" ]]; then
-    echo "[cleanup] restoring original root node_modules/typescript (${ORIGINAL_TS_VERSION})"
-    rm -rf node_modules/typescript
-    mv "$ROOT_TS_BACKUP" node_modules/typescript
-  fi
-  if [[ -f "$LANE_B_ADDED_LIST" ]]; then
-    local rel
-    while IFS= read -r rel; do
-      [[ -n "$rel" ]] && rm -rf "node_modules/${rel:?}"
-    done < "$LANE_B_ADDED_LIST"
-    rm -f "$LANE_B_ADDED_LIST"
-  fi
-}
-trap restore_root_ts EXIT
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -290,6 +239,9 @@ GATE_LINES+=("3. emitDecoratorMetadata (\"design:type\" key emitted in output, v
 echo "Gate 3 (decorator metadata): found=${GATE3_FOUND} matches=${GATE3_MATCH_COUNT} => ${GATE3_STATUS}"
 rm -rf "$TMP_DIR/gate-decorator-${VERSION}"
 
+printf '%s\n' "${GATE_LINES[@]}" > "$GATE_FILE"
+cat "$GATE_FILE"
+
 # ---------------------------------------------------------------------------
 # Scenario 1: cold-typecheck (headline)
 # ---------------------------------------------------------------------------
@@ -409,80 +361,6 @@ echo "warm-incremental peak RSS (warm run): ${SC3_RSS} KB"
 rm -f "$BUILDINFO"
 
 # ---------------------------------------------------------------------------
-# Lane B: swap root compiler for nest build
-# ---------------------------------------------------------------------------
-
-section "Swapping root node_modules/typescript to ${VERSION} for nest build"
-
-swap_root_ts
-ROOT_TS_VERSION="$(node -p "require('./node_modules/typescript/package.json').version")"
-echo "Root node_modules/typescript is now: ${ROOT_TS_VERSION}"
-
-# Gate 4: nest build
-rm -rf dist
-set +e
-npm run build > "$RESULTS_DIR/gate-${VERSION}-nest-build-output.txt" 2>&1
-GATE4_EXIT=$?
-set -e
-if [[ "$GATE4_EXIT" -eq 0 && -f "dist/src/main.js" ]]; then
-  GATE4_STATUS="PASS"
-  GATE4_MAIN="yes"
-  rm -f "$RESULTS_DIR/gate-${VERSION}-nest-build-output.txt"
-else
-  GATE4_STATUS="FAIL"
-  GATE4_MAIN="no"
-fi
-GATE4_SUFFIX=""
-if [[ "$GATE4_STATUS" == "FAIL" ]]; then
-  GATE4_SUFFIX=" (see gate-${VERSION}-nest-build-output.txt)"
-fi
-GATE_LINES+=("4. nest build: exit=${GATE4_EXIT} dist/src/main.js exists=${GATE4_MAIN} => ${GATE4_STATUS}${GATE4_SUFFIX}")
-echo "Gate 4 (nest build): exit=${GATE4_EXIT} dist/src/main.js exists=${GATE4_MAIN} => ${GATE4_STATUS}"
-
-printf '%s\n' "${GATE_LINES[@]}" > "$GATE_FILE"
-cat "$GATE_FILE"
-
-# ---------------------------------------------------------------------------
-# Scenario 4: nest-build
-# ---------------------------------------------------------------------------
-
-if [[ "$GATE4_STATUS" == "PASS" ]]; then
-  section "Scenario 4: nest-build"
-
-  SC4_TIMES=()
-
-  # discarded warm-up (deleteOutDir handles cold reset)
-  time_cmd npm run build
-
-  for i in $(seq 1 "$N_RUNS"); do
-    time_cmd npm run build
-    ms="$LAST_MS"
-    SC4_TIMES+=("$ms")
-    record_run "nest-build" "$i" "$ms" "$LAST_EXIT"
-    check_exit "nest-build" "$LAST_EXIT"
-    echo "  run $i: ${ms} ms"
-  done
-
-  read -r SC4_MEDIAN SC4_MIN SC4_MEAN SC4_STDDEV <<< "$(stats "${SC4_TIMES[@]}")"
-  echo "nest-build: median=${SC4_MEDIAN}ms min=${SC4_MIN}ms mean=${SC4_MEAN}ms stddev=${SC4_STDDEV}ms"
-
-  npm run build > "$RESULTS_DIR/raw-${VERSION}-nest-build.txt" 2>&1 || true
-
-  SC4_RSS="$(peak_rss_kb npm run build)"
-  record_rss "nest-build" "$SC4_RSS"
-  echo "nest-build peak RSS: ${SC4_RSS} KB"
-else
-  echo "Scenario 4 (nest-build) SKIPPED — gate 4 failed for ${VERSION}"
-  SC4_MEDIAN="N/A"; SC4_MIN="N/A"; SC4_MEAN="N/A"; SC4_STDDEV="N/A"; SC4_RSS="N/A"
-fi
-
-# ---------------------------------------------------------------------------
-# Restore root compiler now (trap remains as a safety net)
-# ---------------------------------------------------------------------------
-
-restore_root_ts
-
-# ---------------------------------------------------------------------------
 # Final report
 # ---------------------------------------------------------------------------
 
@@ -492,7 +370,6 @@ printf "%-20s %10s %10s %10s %10s %14s\n" "scenario" "median_ms" "min_ms" "mean_
 printf "%-20s %10s %10s %10s %10s %14s\n" "cold-typecheck" "$SC1_MEDIAN" "$SC1_MIN" "$SC1_MEAN" "$SC1_STDDEV" "$SC1_RSS"
 printf "%-20s %10s %10s %10s %10s %14s\n" "cold-emit" "$SC2_MEDIAN" "$SC2_MIN" "$SC2_MEAN" "$SC2_STDDEV" "$SC2_RSS"
 printf "%-20s %10s %10s %10s %10s %14s\n" "warm-incremental" "$SC3_MEDIAN" "$SC3_MIN" "$SC3_MEAN" "$SC3_STDDEV" "$SC3_RSS"
-printf "%-20s %10s %10s %10s %10s %14s\n" "nest-build" "$SC4_MEDIAN" "$SC4_MIN" "$SC4_MEAN" "$SC4_STDDEV" "$SC4_RSS"
 
 if [[ ${#SCENARIO_BAD_EXITS[@]} -gt 0 ]]; then
   echo ""
