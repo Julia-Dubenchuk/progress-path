@@ -167,6 +167,64 @@ Peak RSS, MB:
 
 7.0.2 uses ~30% less memory while running ~8× faster.
 
+## Per-branch cost: each branch as it stands
+
+Everything above holds the tree constant to isolate the compiler. This section does the
+opposite: each branch is checked out, installed from **its own lockfile** with `npm ci`,
+and measured with the `tsc` that install produces. It answers "what does this branch
+cost today", not "how fast is this compiler".
+
+10 runs after a discarded warm-up, median ms:
+
+| Branch                        | TypeScript | Cold type-check | Cold full emit |     Peak RSS |
+| ----------------------------- | ---------- | --------------: | -------------: | -----------: |
+| `typescript-versions-metrics` | 5.8.2      |          2545.0 |         2698.0 |     364.6 MB |
+| `migration/typescript-6.0.3`  | 6.0.3      |          2648.0 |         2676.0 |     372.8 MB |
+| `migration/typescript-7.0.2`  | 7.0.2      |       **313.5** |      **317.5** | **256.4 MB** |
+
+The 7.0.2 branch type-checks **8.12×** faster and emits **8.50×** faster than the 5.8.2
+branch, on 30% less memory.
+
+**The two methods agree.** Same tree gives 8.24× / 8.35×; per branch gives 8.12× /
+8.50×. The headline does not depend on which way it is measured — that is the strongest
+evidence in this document that the result is real.
+
+6.0.3 lands 4% slower on type-check but 1% _faster_ on emit here. The sign of the
+5.8.2 ↔ 6.0.3 difference has now flipped in three separate series; treat the two as
+equal, as the Results section says.
+
+### What varies between these branches
+
+Three things move at once here, which is why this is a per-branch cost and not a
+compiler comparison:
+
+|                 | `typescript-versions-metrics` | `migration/typescript-6.0.3` | `migration/typescript-7.0.2` |
+| --------------- | ----------------------------- | ---------------------------- | ---------------------------- |
+| Source          | pre-migration                 | post-migration               | post-migration               |
+| `tsconfig.json` | has `baseUrl`                 | `baseUrl` removed            | `baseUrl` removed            |
+| Program size    | 2597 files / 243,242 lines    | 2570 / 258,741               | 2570 / 247,308               |
+
+30 source files differ between the first two branches — that is the migration itself.
+The line counts move in both directions because each branch ships a different
+compiler's `lib.*.d.ts`, and because TypeScript's own 11,448-line `typescript.d.ts`
+sits in the program on the 6.0.3 branch but not on the 7.0.2 one (see
+[Threats to validity](#threats-to-validity)).
+
+### `migration/typescript-6.0.3` does not install cleanly
+
+Discovered while running this: `npm ci` fails outright on that branch.
+
+```
+npm error ERESOLVE could not resolve
+npm error While resolving: ts-jest@29.2.6
+npm error Found: typescript@6.0.3
+npm error peer typescript@">=4.3 <6" from ts-jest@29.2.6
+```
+
+It installs only with `npm ci --legacy-peer-deps`. The fix already exists on the 7.0.2
+branch, which bumps `ts-jest` to `^29.4.12` and ships an `.npmrc` — that is why `npm ci`
+succeeds there with no flag. Worth back-porting if the 6.0.3 branch is kept around.
+
 ## Output correctness
 
 Emitted JavaScript was compared, not just timed:
@@ -315,6 +373,19 @@ Roughly 3 minutes per version. The harness:
   initially "won" the cold type-check at 1471 ms purely because `TS5101` aborted it
   before type-checking began.
 - Discards a warm-up run, then times 10, reporting the median.
+
+For the [per-branch table](#per-branch-cost-each-branch-as-it-stands), which measures
+each branch as it stands instead of holding the tree constant:
+
+```bash
+bash docs/typescript-benchmark/run-per-branch.sh
+```
+
+Roughly 15 minutes. It requires a clean working tree, checks out each of the three
+branches in turn, runs `npm ci` from that branch's own lockfile, measures with the
+`tsc` that install produces, and returns the checkout to
+`migration/typescript-7.0.2`. It records which branches needed
+`--legacy-peer-deps` rather than hiding that.
 
 Raw output, per-run timings and gate results are in
 `docs/typescript-benchmark/results/`.
