@@ -23,26 +23,26 @@ export enum PaymentStatus {
 @Entity('subscription_details')
 export class SubscriptionDetail {
   @PrimaryColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'enum', enum: SubscriptionType })
-  type: SubscriptionType;
+  type!: SubscriptionType;
 
   @Column({ type: 'date', nullable: true })
-  startDate: Date | null;
+  startDate!: Date | null;
 
   @Column({ type: 'date', nullable: true })
-  endDate: Date | null;
+  endDate!: Date | null;
 
   @Column({ type: 'enum', enum: PaymentStatus, nullable: true })
-  paymentStatus: PaymentStatus | null;
+  paymentStatus!: PaymentStatus | null;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @OneToOne(() => User, (user) => user.subscriptionDetail)
-  user: User;
+  user!: User;
 }

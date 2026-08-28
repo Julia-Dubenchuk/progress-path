@@ -1,5 +1,12 @@
 version,scenario,rss_kb
-5.8.2,cold-typecheck,373504
-5.8.2,cold-emit,377056
-5.8.2,warm-incremental,329840
-5.8.2,nest-build,473872
+5.8.2,cold-typecheck,376724
+5.8.2,cold-emit,377884
+5.8.2,warm-incremental,329968
+5.8.2,nest-build,474920
+6.0.3,cold-typecheck,380176
+6.0.3,cold-emit,387764
+6.0.3,warm-incremental,336360
+6.0.3,nest-build,482536
+7.0.2,cold-typecheck,270464
+7.0.2,cold-emit,260480
+7.0.2,warm-incremental,219136

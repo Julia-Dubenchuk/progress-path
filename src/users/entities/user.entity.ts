@@ -22,46 +22,46 @@ import { PasswordResetToken } from '../../auth/entities/password-reset-token.ent
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  username: string;
+  username!: string;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column({ type: 'varchar', nullable: true })
-  password: string | null; // If the user registers via social login, it will be null
+  password!: string | null; // If the user registers via social login, it will be null
 
   @Column({ type: 'varchar', nullable: true, unique: true })
-  googleId: string | null;
+  googleId!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
-  firstName: string | null;
+  firstName!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
-  lastName: string | null;
+  lastName!: string | null;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @OneToOne(() => UserProfile, (profile) => profile.user)
-  profile: UserProfile;
+  profile!: UserProfile;
 
   @OneToOne(() => SubscriptionDetail, (subscription) => subscription.user, {
     cascade: true,
   })
   @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_subscription' })
-  subscriptionDetail: SubscriptionDetail;
+  subscriptionDetail!: SubscriptionDetail;
 
   @OneToOne(() => UserPreference, (preference) => preference.user, {
     cascade: true,
   })
   @JoinColumn({ name: 'id', foreignKeyConstraintName: 'FK_user_preference' })
-  preference: UserPreference;
+  preference!: UserPreference;
 
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable({
@@ -69,17 +69,17 @@ export class User {
     joinColumn: { name: 'userId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'roleId', referencedColumnName: 'id' },
   })
-  roles: Role[];
+  roles!: Role[];
 
   @OneToMany(() => ActivityLog, (activityLog) => activityLog.user)
-  activityLogs: ActivityLog[];
+  activityLogs!: ActivityLog[];
 
   @OneToMany(() => List, (list) => list.user)
-  lists: List[];
+  lists!: List[];
 
   @OneToMany(() => Mood, (mood) => mood.user)
-  moods: Mood[];
+  moods!: Mood[];
 
   @OneToMany(() => PasswordResetToken, (token) => token.user)
-  passwordResetTokens: PasswordResetToken[];
+  passwordResetTokens!: PasswordResetToken[];
 }

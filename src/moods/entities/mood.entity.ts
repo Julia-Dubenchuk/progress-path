@@ -12,27 +12,27 @@ import { User } from '../../users/entities/user.entity';
 @Entity('moods')
 export class Mood {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ comment: 'happy, sad, anxiety', nullable: false })
-  mood: string;
+  mood!: string;
 
   @Column({ type: 'text', nullable: true, comment: 'Reasons' })
-  note: string;
+  note!: string;
 
   @Column({ type: 'date' })
-  date: Date;
+  date!: Date;
 
   @Column('uuid')
-  userId: string;
+  userId!: string;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @ManyToOne(() => User, (user) => user.moods)
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user!: User;
 }

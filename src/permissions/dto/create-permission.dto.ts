@@ -16,7 +16,7 @@ export class CreatePermissionDto {
   })
   @IsEnum(Action)
   @IsNotEmpty()
-  action: Action;
+  action!: Action;
 
   @ApiPropertyOptional({
     description: 'Permission description',

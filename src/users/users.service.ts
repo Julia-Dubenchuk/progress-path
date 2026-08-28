@@ -201,7 +201,9 @@ export class UsersService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      this.logger.error(`Failed to update user ${id}`, { meta: error });
+      this.logger.error(`Failed to update user ${id}`, {
+        meta: { error },
+      });
       void this.activityLogsService.create({
         action: 'USER_UPDATE_FAILED',
         description: `User update failed for ${id}`,

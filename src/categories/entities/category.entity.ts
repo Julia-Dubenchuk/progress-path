@@ -22,20 +22,20 @@ export enum CategoryTitle {
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'enum', enum: CategoryTitle, unique: true })
-  title: CategoryTitle;
+  title!: CategoryTitle;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @CreateDateColumn({ type: 'timestamp' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @OneToMany(() => List, (list) => list.category)
-  lists: List[];
+  lists!: List[];
 }

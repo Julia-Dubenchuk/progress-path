@@ -30,7 +30,6 @@ export class Auth0Strategy extends PassportStrategy(
     };
   }
 
-  /* eslint-disable @typescript-eslint/no-unsafe-assignment */
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   async validate(
     request: any,

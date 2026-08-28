@@ -16,7 +16,7 @@ export class CreateListDto {
   })
   @IsString()
   @MaxLength(120)
-  title: string;
+  title!: string;
 
   @ApiPropertyOptional({
     description: 'Optional description',
@@ -31,7 +31,7 @@ export class CreateListDto {
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsUUID()
-  categoryId: string;
+  categoryId!: string;
 
   @ApiPropertyOptional({
     description: 'Target completion date',
@@ -43,5 +43,5 @@ export class CreateListDto {
 
   @ApiProperty({ enum: STATUS })
   @IsEnum(STATUS)
-  status: STATUS;
+  status!: STATUS;
 }

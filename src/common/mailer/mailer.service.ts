@@ -5,7 +5,7 @@ import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class MailerService {
-  private transporter: nodemailer.Transporter;
+  private transporter!: nodemailer.Transporter;
 
   constructor(private readonly logger: LoggerService) {
     void this.init();
@@ -47,7 +47,7 @@ export class MailerService {
       });
     } catch (err) {
       this.logger.error(
-        `Failed to send email to ${mailOptions.to as string}: ${err}`,
+        `Failed to send email to ${mailOptions.to as string}: ${String(err)}`,
         {
           context: MailerService.name,
           meta: { to: mailOptions.to },
