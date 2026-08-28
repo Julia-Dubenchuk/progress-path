@@ -1,0 +1,11 @@
+Environment
+===========
+Date:         2026-08-27T12:58:13Z
+CPU:          Intel(R) Core(TM) i7-10750H CPU @ 2.60GHz
+Cores:        12
+RAM:          15Gi
+OS:           Ubuntu 24.04.4 LTS
+Kernel:       Linux 6.8.0-138-generic
+Architecture: x86_64
+Node:         v22.14.0
+npm:          10.9.2

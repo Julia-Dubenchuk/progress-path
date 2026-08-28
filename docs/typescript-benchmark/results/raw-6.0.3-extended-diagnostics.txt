@@ -1,0 +1,27 @@
+tsconfig.json(14,5): error TS5101: Option 'baseUrl' is deprecated and will stop functioning in TypeScript 7.0. Specify compilerOption '"ignoreDeprecations": "6.0"' to silence this error.
+  Visit https://aka.ms/ts6 for migration information.
+Files:                        2570
+Lines of Library:            59514
+Lines of Definitions:       189114
+Lines of TypeScript:         10061
+Lines of JavaScript:             0
+Lines of JSON:                   0
+Lines of Other:                  0
+Identifiers:                231437
+Symbols:                    149996
+Types:                          87
+Instantiations:                  0
+Memory used:               230104K
+Assignability cache size:        0
+Identity cache size:             0
+Subtype cache size:              0
+Strict subtype cache size:       0
+I/O Read time:               0.08s
+Parse time:                  0.67s
+ResolveModule time:          0.17s
+ResolveTypeReference time:   0.00s
+Program time:                1.07s
+Bind time:                   0.30s
+printTime time:              0.00s
+Emit time:                   0.00s
+Total time:                  1.38s
