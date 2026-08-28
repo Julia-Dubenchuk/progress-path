@@ -4,19 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+> **This branch (`migration/typescript-7.0.2`) is a benchmark configuration** —
+> `typescript@7.0.2` is the only compiler installed. TypeScript 7 removed the classic
+> JS compiler API, so `@nestjs/cli`, `typescript-eslint`, `ts-jest`, `ts-node` and
+> `ts-node-dev` all fail — that is 18 of the 30 scripts below, marked ✗. Only
+> `build:tsc`, `typecheck`, `format` and the docker/`start:prod` scripts work.
+> This is deliberate: the benchmark measures the compiler with nothing else in the
+> process. See `docs/typescript-version-benchmark.md` for the tracking issues, and do
+> not merge this configuration to `main`.
+
 ```bash
 # Development
-npm run start:dev          # watch mode via nest CLI
-npm run start:local        # ts-node-dev with hot reload (faster cold start)
+npm run start:dev          # ✗ watch mode via nest CLI
+npm run start:local        # ✗ ts-node-dev with hot reload (faster cold start)
 
 # Build & lint
-npm run build              # nest build → dist/ (TypeScript 6.0.3, via the Nest CLI)
-npm run build:tsc          # direct tsc → dist/ (TypeScript 7.0.2 native, ~8x faster)
-npm run typecheck          # tsc --noEmit (TypeScript 7.0.2 native)
-npm run lint               # ESLint with auto-fix
+npm run build              # ✗ nest build → dist/
+npm run build:tsc          # direct tsc → dist/ (TypeScript 7.0.2)
+npm run typecheck          # tsc --noEmit (TypeScript 7.0.2)
+npm run lint               # ✗ ESLint with auto-fix
 npm run format             # Prettier on src/ and test/
 
-# Testing
+# Testing (all ✗ on this branch — ts-jest cannot drive TypeScript 7)
 npm run test               # unit tests (rootDir: src, matches **/*.spec.ts)
 npm run test:watch         # watch mode
 npm run test:cov           # with coverage
@@ -25,7 +34,7 @@ npm run test:e2e           # e2e suite in test/ (jest-e2e.json config)
 # Run a single test file
 npx jest src/lists/test/lists.service.spec.ts
 
-# Database
+# Database (all ✗ on this branch — these run through ts-node)
 npm run migration:generate -- --name MigrationName   # generate from entity diff
 npm run migration:run      # apply pending migrations
 npm run migration:revert   # roll back last migration

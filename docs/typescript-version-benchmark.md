@@ -23,21 +23,28 @@ This measures **TypeScript compilation** — `tsc` invoked directly against the
 project's own `tsconfig`, with a byte-identical dependency tree under all three
 versions.
 
-The Nest CLI build pipeline is deliberately excluded. `nest build` wraps compilation
-in CLI startup, config loading and plugin setup — around 1.7 s of fixed overhead on
-this project, which would dilute every ratio below — and it cannot run TypeScript 7
-at all, because the native port removed the JS compiler API the CLI drives
-(`tsBinary.getParsedCommandLineOfConfigFile is not a function`; `@nestjs/cli@12.0.0`,
-the current release, still calls it). Timing it would compare toolchains, not
-compilers, and would cap the result at whatever the slowest link permits.
+The Nest CLI build pipeline is deliberately excluded, and so is every other tool that
+wraps the compiler. `nest build` layers CLI startup, config loading and plugin setup
+on top of compilation — around 1.7 s of fixed overhead on this project — which would
+dilute every ratio below and cap the result at whatever the slowest link permits.
+Timing it would compare toolchains, not compilers.
 
-So the two concerns are kept apart in `package.json`, and neither constrains the
-other:
+This branch therefore installs **TypeScript 7.0.2 as the only compiler**:
 
-| Script              | Compiler       | Role                                |
-| ------------------- | -------------- | ----------------------------------- |
-| `npm run build`     | 6.0.3, via CLI | The normal Nest workflow, unchanged |
-| `npm run build:tsc` | 7.0.2 native   | Pure compilation — what is measured |
+```json
+{ "devDependencies": { "typescript": "^7.0.2" } }
+```
+
+That is a measurement decision, not a recommendation. It gives an unambiguous answer
+to "what does this compiler cost on this code" with nothing else in the process, at
+the price of breaking every tool that drives the compiler through its JS API — see
+[Toolchain status](#toolchain-status-what-a-single-702-install-costs). The two
+scripts that matter here are:
+
+| Script              | Role                                     |
+| ------------------- | ---------------------------------------- |
+| `npm run build:tsc` | `tsc -p tsconfig.build.json` — full emit |
+| `npm run typecheck` | `tsc -p tsconfig.json --noEmit`          |
 
 ## Environment
 
@@ -187,24 +194,41 @@ behaves identically.
 it forces the `baseUrl` removal that 7.0 requires anyway, and its stricter defaults
 surfaced a real latent bug (see below). It is the stepping stone, not the destination.
 
-**7.0.2 is adoptable today for compilation and type-checking** — but not by making it
-the only compiler. See "Adopting 7.0.2 side by side" below.
+**7.0.2 is the fastest compiler available for this project by a wide margin**, and
+its output is correct. Whether you can adopt it depends entirely on the toolchain
+around it, which is a separate question from the one this benchmark answers.
 
-## Adopting 7.0.2 side by side
+## Toolchain status: what a single 7.0.2 install costs
 
-Making 7.0.2 the project's only compiler does not work. TypeScript 7 removed the
-classic compiler API — `require('typescript')` now returns just
-`{ version, versionMajorMinor }` — so every tool that drives the compiler
-programmatically breaks: `@nestjs/cli`, `ts-jest`, `ts-node`, `ts-node-dev` and
-`typescript-eslint`. That is **18 of this project's 30 npm scripts** — every `nest`,
-`ts-node`, `ts-node-dev`, `jest` and `eslint` entry point. `typescript-eslint@8.68.0`
-detects `major >= 7` and throws on purpose; support is tracked for TS ≥ 7.1 in
-[issue 10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940).
-Upgrading does not help — `@nestjs/cli@12.0.0`, the current release, still calls
-`getParsedCommandLineOfConfigFile`.
+> **This branch is a measurement configuration, not a production one.** With
+> TypeScript 7.0.2 as the only compiler, `npm run build`, `npm run lint`, `npm test`
+> and every `ts-node` script fail. That is accepted here on purpose: the benchmark
+> needs the compiler measured in isolation, and the surrounding tooling is not part
+> of the question. Do not merge this configuration to `main` until the entries below
+> are resolved.
 
-The 7.0 announcement documents a side-by-side layout instead, which this project now
-uses (commit `e4079be`):
+TypeScript 7 removed the classic compiler API. `require('typescript')` now returns
+just `{ version, versionMajorMinor }`, so every tool that drove the compiler
+programmatically breaks — **18 of this project's 30 npm scripts**:
+
+| Tool                       | Scripts affected                                                                        | Failure                                                                                                                | Tracking                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `@nestjs/cli` 11.0.14      | `build`, `start`, `start:dev`, `start:debug`                                            | `tsBinary.getParsedCommandLineOfConfigFile is not a function`                                                          | [nestjs/nest-cli#3479](https://github.com/nestjs/nest-cli/issues/3479)                         |
+| `typescript-eslint` 8.68.0 | `lint` (and the husky pre-commit hook)                                                  | `typescript-eslint does not support TS 7.0.` — a deliberate `major >= 7` throw                                         | [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940) |
+| `ts-jest` 29.4.12          | `test`, `test:watch`, `test:cov`, `test:e2e`                                            | `The TypeScript compiler "typescript" (version 7.0.2) does not expose the JavaScript compiler API required by ts-jest` | Suggests the `@typescript/typescript6` alias in its own error text                             |
+| `ts-node` / `ts-node-dev`  | `start:local`, `seed`, `db:sync`, `typeorm`, `migration:*`, `schema:sync`, `test:debug` | `TypeError: Cannot read properties of undefined (reading 'fileExists')`                                                | —                                                                                              |
+
+Upgrading does not help: `@nestjs/cli@12.0.0`, the current release, still calls
+`getParsedCommandLineOfConfigFile`. `typescript-eslint` targets TS ≥ 7.1.
+
+`ts-jest` and `typescript-eslint` also declare peer ranges (`<7` and `<6.1.0`) that
+7.0.2 does not satisfy, so the repo carries an `.npmrc` with `legacy-peer-deps=true`
+to keep `npm ci` reproducible.
+
+**When support lands**, drop `.npmrc` and collapse back to a single, working
+`typescript@^7`. Until then, the production-safe alternative is the side-by-side
+layout Microsoft documents in the 7.0 announcement, which this branch used at commit
+`e4079be`:
 
 ```json
 {
@@ -215,45 +239,27 @@ uses (commit `e4079be`):
 }
 ```
 
-`typescript` stays the package everything resolves through, so the existing toolchain
-— `@nestjs/cli`, `ts-jest`, `ts-node`, `ts-node-dev`, `typescript-eslint` — is
-untouched. `@typescript/native` supplies the native binary, and npm links its `tsc`
-into `node_modules/.bin`, so plain `tsc` in an npm script is the 7.0.2 compiler:
+`typescript` stays the package every tool resolves through, so the toolchain keeps
+working on 6.0.3, while `@typescript/native` supplies the 7.0.2 binary for `build`
+and `typecheck`. Measured that way, `npm run build` went from 4419 ms (`nest build`)
+to 547 ms — **8.1×** — with the full test and lint suites still passing.
 
-```json
-{
-  "build": "nest build",
-  "prebuild:tsc": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
-  "build:tsc": "tsc -p tsconfig.build.json",
-  "typecheck": "tsc -p tsconfig.json --noEmit"
-}
-```
+### Measured on this branch
 
-`build` is left as `nest build` so the everyday Nest workflow is unaffected;
-`build:tsc` is the TypeScript-only path, and the one this benchmark exercises.
-`nest-cli.json` configures nothing beyond `deleteOutDir`, which `prebuild:tsc`
-reproduces for the direct path.
+5 runs after a discarded warm-up, median, end-to-end through npm:
 
-Measured end-to-end through npm (5 runs after a discarded warm-up, median):
-
-| Command             | Compiler |     Median |
-| ------------------- | -------- | ---------: |
-| `npm run build`     | 6.0.3    |    4419 ms |
-| `npm run build:tsc` | 7.0.2    | **547 ms** |
-| `npm run typecheck` | 7.0.2    | **342 ms** |
+| Command             |     Median |
+| ------------------- | ---------: |
+| `npm run build:tsc` | **554 ms** |
+| `npm run typecheck` | **331 ms** |
 
 `build:tsc` sits above the 331.5 ms raw cold-emit median because it also pays for two
 npm lifecycle spawns (`prebuild:tsc` plus the script itself). Compiler against
-compiler, the ratio is the 8.0× in the results table; command against command it is
-**8.1×** against the Nest pipeline.
+compiler, the ratio is the 8.0× in the results table.
 
-Verified: both build paths emit 141 files carrying the same 243 `design:type`
-entries and differ only in whitespace, the app boots and maps 81 routes, 26 suites /
-50 tests pass, type-aware lint and prettier are clean, and `npm ci` reproduces the
-layout.
-
-Revisit collapsing to a single compiler when `typescript-eslint` and `@nestjs/cli`
-support the TS 7 API.
+Verified on this configuration: `tsc --version` reports 7.0.2, `build:tsc` emits 141
+files carrying the same 243 `design:type` entries as 5.8.2 and 6.0.3, and `typecheck`
+reports zero errors.
 
 ### Latent bug surfaced by the migration
 
