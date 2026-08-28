@@ -1,0 +1,3 @@
+typescript-versions-metrics|5.8.2|373340
+migration/typescript-6.0.3|6.0.3|381736|yes (plain npm ci fails with ERESOLVE)
+migration/typescript-7.0.2|7.0.2|262528|no

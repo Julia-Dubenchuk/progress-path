@@ -3,4 +3,3 @@ TypeScript 6.0.3 compatibility gate
 1. tsc --version: "Version 6.0.3" => PASS (expected to contain 6.0.3)
 2. tsc -p tsconfig.json --noEmit: exit=0 errors=0 => PASS
 3. emitDecoratorMetadata ("design:type" key emitted in output, via __metadata/Reflect.metadata helper): found=yes matches=243 => PASS
-4. nest build: exit=0 dist/src/main.js exists=yes => PASS

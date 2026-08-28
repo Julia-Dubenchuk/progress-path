@@ -1,25 +1,50 @@
 # TypeScript 5.8.2 → 6.0.3 → 7.0.2 on progress-path
 
-How much faster is TypeScript 7.0.2 on this project, and how does TypeScript 6.0
+How much faster is TypeScript 7.0.2 on this project, and how does TypeScript 6.0.3
 compare?
 
 ## Answer
 
-**TypeScript 7.0.2 type-checks this project 7.6× faster** — 2511 ms drops to 332 ms.
-Full emit is 8.0× faster and warm rebuilds 6.7× faster, using 28% less memory.
+**TypeScript 7.0.2 type-checks this project 8.2× faster** — 2607 ms drops to 317 ms.
+Full emit is 8.4× faster and warm rebuilds 6.7× faster, using ~30% less memory.
 
-**TypeScript 6.0.3 is not faster. It is 3–6% slower** than 5.8.2 across every
-scenario. That is expected: 6.0 is the release that sheds deprecated options and
-tightens defaults, not the one that rewrites the compiler. The speed story belongs
-entirely to 7.0.
+**TypeScript 6.0.3 is not a speed change in either direction.** It lands 1% behind
+5.8.2, which is inside this machine's run-to-run noise — the two are indistinguishable
+here. That is expected: 6.0.3 sheds deprecated options and tightens defaults, it does
+not rewrite the compiler. The speed story belongs entirely to 7.0.2.
 
-Two caveats decide whether you can act on this today:
+One caveat decides whether you can act on this today: neither 6.0.3 nor 7.0.2 could
+compile this project as it was configured. Reaching these numbers required a real
+migration (commit `6285ce7`).
 
-- Neither 6.0.3 nor 7.0.2 could compile this project as it was configured. Reaching
-  these numbers required a real migration (commit `6285ce7`).
-- **`nest build` fails under 7.0.2.** The Nest CLI calls a compiler API the native
-  port does not expose. The standalone `tsc` works perfectly; your actual build
-  command does not.
+## Scope: the compiler, not the build pipeline
+
+This measures **TypeScript compilation** — `tsc` invoked directly against the
+project's own `tsconfig`, with a byte-identical dependency tree under all three
+versions.
+
+The Nest CLI build pipeline is deliberately excluded, and so is every other tool that
+wraps the compiler. `nest build` layers CLI startup, config loading and plugin setup
+on top of compilation — around 1.7 s of fixed overhead on this project — which would
+dilute every ratio below and cap the result at whatever the slowest link permits.
+Timing it would compare toolchains, not compilers.
+
+This branch therefore installs **TypeScript 7.0.2 as the only compiler**:
+
+```json
+{ "devDependencies": { "typescript": "^7.0.2" } }
+```
+
+That is a measurement decision, not a recommendation. It gives an unambiguous answer
+to "what does this compiler cost on this code" with nothing else in the process, at
+the price of breaking every tool that drives the compiler through its JS API — see
+[Toolchain status](#toolchain-status-what-a-single-702-install-costs). The two
+scripts that matter here are:
+
+| Script              | Role                                     |
+| ------------------- | ---------------------------------------- |
+| `npm run build:tsc` | `tsc -p tsconfig.build.json` — full emit |
+| `npm run typecheck` | `tsc -p tsconfig.json --noEmit`          |
 
 ## Environment
 
@@ -34,16 +59,16 @@ Node:         v22.14.0
 npm:          10.9.2
 ```
 
-Subject: this repository at commit `6285ce7` — 173 `.ts` files, ~10,064 lines of own
-source, pulling 2570 files and ~189,000 lines of type definitions into the program.
+Subject: this repository at commit `6285ce7` — 173 `.ts` files, 10,064 lines of own
+source, pulling ~2,570 files and ~178,000 lines of type definitions into the program.
 
 ## Versions tested
 
-| Requested | Tested    | Note                                                                                                    |
-| --------- | --------- | ------------------------------------------------------------------------------------------------------- |
-| 5.8.2     | 5.8.2     | The version this project pinned. JS compiler.                                                           |
-| 6.0       | **6.0.3** | `typescript@6.0.0` was never published — npm only has 6.0.2 and 6.0.3. 6.0.3 is the newest in the line. |
-| 7.0.2     | 7.0.2     | Current `latest`. The native (Go) compiler.                                                             |
+| Version | Note                                          |
+| ------- | --------------------------------------------- |
+| 5.8.2   | The version this project pinned. JS compiler. |
+| 6.0.3   | Newest of the 6.0.x line. JS compiler.        |
+| 7.0.2   | Current `latest`. The native (Go) compiler.   |
 
 TypeScript 7 ships differently: the `typescript` package is a 3.6 MB shim that pulls a
 platform binary (`@typescript/typescript-linux-x64`, 27 MB) as a separate dependency,
@@ -57,15 +82,15 @@ that is fast.
 | Check                         | 5.8.2      | 6.0.3      | 7.0.2      |
 | ----------------------------- | ---------- | ---------- | ---------- |
 | `tsc --noEmit`, 0 errors      | PASS       | PASS       | PASS       |
+| `tsc -p tsconfig.build.json`  | PASS       | PASS       | PASS       |
 | `emitDecoratorMetadata` works | PASS (243) | PASS (243) | PASS (243) |
-| `nest build`                  | PASS       | PASS       | **FAIL**   |
 
 All three figures above are _post-migration_. Before it, 6.0.3 produced 118 errors and
 7.0.2 could not run either.
 
-### What 6.0 broke
+### What 6.0.3 broke
 
-TypeScript 6.0 derives the strict-family defaults from `strictNullChecks` instead of
+TypeScript 6.0.3 derives the strict-family defaults from `strictNullChecks` instead of
 `strict`, and turns deprecated options into hard errors:
 
 | Change                                | Errors                        | Fix applied                                                                                                                                         |
@@ -74,82 +99,131 @@ TypeScript 6.0 derives the strict-family defaults from `strictNullChecks` instea
 | `strictPropertyInitialization` now on | 114 × `TS2564`                | Definite-assignment assertions on entity and DTO properties, which TypeORM and class-transformer populate rather than constructors.                 |
 | `useUnknownInCatchVariables` now on   | 3 × `TS2322`                  | `catch` bindings are `unknown`; logger calls now wrap as `{ error }`.                                                                               |
 
-7.0.2 needed no further changes beyond the 6.0 migration.
-
-### Why `nest build` fails on 7.0.2
-
-```
-Error  tsBinary.getParsedCommandLineOfConfigFile is not a function
-```
-
-`@nestjs/cli` loads the project's `typescript` and drives it through the JS compiler
-API. The native port does not implement that surface. This is a CLI-compatibility
-gap, not a code problem — `tsc -p tsconfig.build.json` produces correct output under
-7.0.2 with the same 243 decorator-metadata entries.
+7.0.2 needed no further changes beyond the 6.0.3 migration.
 
 ## Results
 
 10 runs per scenario per version, all exiting cleanly. Median milliseconds:
 
-| Scenario         |  5.8.2 |  6.0.3 |     7.0.2 | 7.0.2 speedup |    6.0.3 vs 5.8.2 |
-| ---------------- | -----: | -----: | --------: | ------------: | ----------------: |
-| Cold type-check  | 2511.5 | 2665.0 | **332.0** |     **7.56×** | 0.94× (6% slower) |
-| Cold full emit   | 2648.0 | 2757.5 | **331.5** |     **7.99×** | 0.96× (4% slower) |
-| Warm incremental | 1699.5 | 1747.5 | **254.0** |     **6.69×** | 0.97× (3% slower) |
-| `nest build`     | 4243.5 | 4426.0 |   _fails_ |             — | 0.96× (4% slower) |
+| Scenario         |  5.8.2 |  6.0.3 |     7.0.2 | 7.0.2 speedup | 6.0.3 vs 5.8.2 |
+| ---------------- | -----: | -----: | --------: | ------------: | -------------: |
+| Cold type-check  | 2606.5 | 2632.5 | **316.5** |     **8.24×** | 0.99× (+26 ms) |
+| Cold full emit   | 2786.0 | 2816.0 | **333.5** |     **8.35×** | 0.99× (+30 ms) |
+| Warm incremental | 1727.0 | 1736.0 | **259.0** |     **6.67×** |  1.00× (+9 ms) |
 
 Spread (min / mean / stddev, ms):
 
-| Version | Scenario         |    min |   mean | stddev |
-| ------- | ---------------- | -----: | -----: | -----: |
-| 5.8.2   | cold type-check  | 2454.0 | 2527.1 |   47.2 |
-| 5.8.2   | cold emit        | 2565.0 | 2674.9 |   92.5 |
-| 5.8.2   | warm incremental | 1634.0 | 1719.7 |   54.0 |
-| 5.8.2   | `nest build`     | 4174.0 | 4256.4 |   68.8 |
-| 6.0.3   | cold type-check  | 2566.0 | 2675.6 |   80.1 |
-| 6.0.3   | cold emit        | 2703.0 | 2788.3 |   66.4 |
-| 6.0.3   | warm incremental | 1623.0 | 1737.2 |   74.3 |
-| 6.0.3   | `nest build`     | 4298.0 | 4430.4 |   71.4 |
-| 7.0.2   | cold type-check  |  318.0 |  331.0 |    7.7 |
-| 7.0.2   | cold emit        |  296.0 |  326.5 |   16.1 |
-| 7.0.2   | warm incremental |  243.0 |  253.1 |    5.3 |
+| Version | Scenario         |    min |   mean | stddev |  sd % |
+| ------- | ---------------- | -----: | -----: | -----: | ----: |
+| 5.8.2   | cold type-check  | 2524.0 | 2626.1 |   92.2 |  3.5% |
+| 5.8.2   | cold emit        | 2714.0 | 2791.3 |   61.7 |  2.2% |
+| 5.8.2   | warm incremental | 1676.0 | 1730.5 |   33.3 |  1.9% |
+| 6.0.3   | cold type-check  | 2596.0 | 2657.5 |   64.3 |  2.4% |
+| 6.0.3   | cold emit        | 2733.0 | 2830.0 |   68.7 |  2.4% |
+| 6.0.3   | warm incremental | 1667.0 | 1737.7 |   38.7 |  2.2% |
+| 7.0.2   | cold type-check  |  307.0 |  319.9 |   13.4 |  4.2% |
+| 7.0.2   | cold emit        |  309.0 |  344.8 |   39.6 | 11.9% |
+| 7.0.2   | warm incremental |  244.0 |  263.4 |   20.1 |  7.8% |
 
-Stddev stays under 4% of median everywhere, so the 6% gap between 5.8.2 and 6.0.3 is
-outside noise, and the 7.0.2 gap is not close to arguable.
+**The 5.8.2 / 6.0.3 gap is not resolvable at this precision.** The largest difference
+between them is 30 ms, against standard deviations of 62–92 ms on the same runs. Treat
+them as equal; do not read the 1% column as a regression.
 
-Note that 7.0.2's _warm incremental_ rebuild (254 ms) is barely faster than its _cold_
-type-check (332 ms). The native compiler is fast enough that incremental state has
+The 7.0.2 gap needs no such care — it is 8× on medians whose entire spread is 13–40 ms.
+7.0.2's percentages look worse only because its medians are ten times smaller: a single
+449 ms outlier in the cold-emit series produces that 11.9%, while 5.8.2's tighter-looking
+2.2% is a wider ±62 ms in absolute terms.
+
+Note that 7.0.2's _warm incremental_ rebuild (259 ms) is barely faster than its _cold_
+type-check (317 ms). The native compiler is fast enough that incremental state has
 almost nothing left to save — worth remembering before investing in build caching.
 
 ## Where the time goes
 
 | Phase     |      5.8.2 |      6.0.3 |       7.0.2 |
 | --------- | ---------: | ---------: | ----------: |
-| Parse     |     0.70 s |     0.68 s |     0.107 s |
-| Bind      |     0.30 s |     0.31 s |     0.024 s |
-| Check     |     0.88 s |     0.89 s |     0.113 s |
-| Emit      |     0.00 s |     0.00 s |     0.007 s |
-| **Total** | **2.31 s** | **2.30 s** | **0.291 s** |
+| Parse     |     0.65 s |     0.71 s |     0.108 s |
+| Bind      |     0.29 s |     0.34 s |     0.045 s |
+| Check     |     0.93 s |     1.02 s |     0.089 s |
+| Emit      |     0.00 s |     0.00 s |     0.024 s |
+| **Total** | **2.32 s** | **2.51 s** | **0.308 s** |
 
-The gain is broad, not concentrated: parse 6.5×, bind 12.5×, check 7.8×. This is a
+The gain is broad, not concentrated: parse 6.0×, bind 6.4×, check 10.4×. This is a
 different implementation of the same work, not one hot path being optimised.
 
 `Types` and `Instantiations` counts are _not_ comparable across the major versions —
-5.8.2 reports 19,739 / 42,474 where 7.0.2 reports 40,467 / 62,740. The native port
+5.8.2 reports 19,737 / 42,474 where 7.0.2 reports 40,465 / 62,740. The native port
 accounts for them differently. Only wall-clock and memory compare directly.
 
 ## Memory
 
 Peak RSS, MB:
 
-| Scenario         | 5.8.2 | 6.0.3 |     7.0.2 |
-| ---------------- | ----: | ----: | --------: |
-| Cold type-check  | 367.9 | 371.3 | **264.1** |
-| Cold emit        | 369.0 | 378.7 | **254.4** |
-| Warm incremental | 322.2 | 328.5 | **214.0** |
-| `nest build`     | 463.8 | 471.2 |   _fails_ |
+| Scenario         | 5.8.2 | 6.0.3 |     7.0.2 | 7.0.2 saving |
+| ---------------- | ----: | ----: | --------: | -----------: |
+| Cold type-check  | 351.3 | 356.4 | **248.1** |        −29 % |
+| Cold emit        | 354.1 | 361.9 | **242.5** |        −32 % |
+| Warm incremental | 309.3 | 314.3 | **214.0** |        −31 % |
 
-7.0.2 uses ~28% less memory while running ~7.6× faster.
+7.0.2 uses ~30% less memory while running ~8× faster.
+
+## Per-branch cost: each branch as it stands
+
+Everything above holds the tree constant to isolate the compiler. This section does the
+opposite: each branch is checked out, installed from **its own lockfile** with `npm ci`,
+and measured with the `tsc` that install produces. It answers "what does this branch
+cost today", not "how fast is this compiler".
+
+10 runs after a discarded warm-up, median ms:
+
+| Branch                        | TypeScript | Cold type-check | Cold full emit |     Peak RSS |
+| ----------------------------- | ---------- | --------------: | -------------: | -----------: |
+| `typescript-versions-metrics` | 5.8.2      |          2545.0 |         2698.0 |     364.6 MB |
+| `migration/typescript-6.0.3`  | 6.0.3      |          2648.0 |         2676.0 |     372.8 MB |
+| `migration/typescript-7.0.2`  | 7.0.2      |       **313.5** |      **317.5** | **256.4 MB** |
+
+The 7.0.2 branch type-checks **8.12×** faster and emits **8.50×** faster than the 5.8.2
+branch, on 30% less memory.
+
+**The two methods agree.** Same tree gives 8.24× / 8.35×; per branch gives 8.12× /
+8.50×. The headline does not depend on which way it is measured — that is the strongest
+evidence in this document that the result is real.
+
+6.0.3 lands 4% slower on type-check but 1% _faster_ on emit here. The sign of the
+5.8.2 ↔ 6.0.3 difference has now flipped in three separate series; treat the two as
+equal, as the Results section says.
+
+### What varies between these branches
+
+Three things move at once here, which is why this is a per-branch cost and not a
+compiler comparison:
+
+|                 | `typescript-versions-metrics` | `migration/typescript-6.0.3` | `migration/typescript-7.0.2` |
+| --------------- | ----------------------------- | ---------------------------- | ---------------------------- |
+| Source          | pre-migration                 | post-migration               | post-migration               |
+| `tsconfig.json` | has `baseUrl`                 | `baseUrl` removed            | `baseUrl` removed            |
+| Program size    | 2597 files / 243,242 lines    | 2570 / 258,741               | 2570 / 247,308               |
+
+30 source files differ between the first two branches — that is the migration itself.
+The line counts move in both directions because each branch ships a different
+compiler's `lib.*.d.ts`, and because TypeScript's own 11,448-line `typescript.d.ts`
+sits in the program on the 6.0.3 branch but not on the 7.0.2 one (see
+[Threats to validity](#threats-to-validity)).
+
+### `migration/typescript-6.0.3` does not install cleanly
+
+Discovered while running this: `npm ci` fails outright on that branch.
+
+```
+npm error ERESOLVE could not resolve
+npm error While resolving: ts-jest@29.2.6
+npm error Found: typescript@6.0.3
+npm error peer typescript@">=4.3 <6" from ts-jest@29.2.6
+```
+
+It installs only with `npm ci --legacy-peer-deps`. The fix already exists on the 7.0.2
+branch, which bumps `ts-jest` to `^29.4.12` and ships an `.npmrc` — that is why `npm ci`
+succeeds there with no flag. Worth back-porting if the 6.0.3 branch is kept around.
 
 ## Output correctness
 
@@ -165,36 +239,101 @@ behaves identically.
 
 ## Threats to validity
 
-- **Small project.** At ~10k lines of own source, most of the work is the 189k lines
+- **Small project.** At ~10k lines of own source, most of the work is the 178k lines
   of dependency definitions. The native port's advantage generally grows with project
-  size, so 7.6× probably _understates_ what a larger codebase would see.
+  size, so 8.2× probably _understates_ what a larger codebase would see.
 - **`skipLibCheck: true`** means `.d.ts` files are parsed but not fully checked. With
   it off, all three would be slower and the ratio could shift.
 - **Single machine, single run series.** One laptop, one OS, one Node version, no
-  thermal-throttling control beyond keeping the machine otherwise idle.
+  thermal-throttling control beyond keeping the machine otherwise idle. Repeating the
+  whole benchmark on a different day moved individual medians by up to 4%, which is
+  why the 1% gap between 5.8.2 and 6.0.3 is reported as no gap at all.
+- **The measured program depends on what is installed.** Under the earlier
+  side-by-side layout, `ts-node`'s `import type * as _ts from 'typescript'` pulled
+  TypeScript 6.0.3's own 11,448-line `lib/typescript.d.ts` into the program. TS 7's
+  package does not ship that file, so removing 6.0.3 shrank the type graph by ~11k
+  lines (~4%). Every number here was re-measured on the current single-compiler tree
+  so all three versions see the same program; do not mix these figures with ones taken
+  before that change.
 - **No editor measurement.** 7.0.2's package ships no `tsserver`, so IDE
   responsiveness — arguably what you feel most — is untested here.
-- **`nest build` includes CLI overhead** beyond compilation, which is why its numbers
-  sit ~1.7 s above the raw `tsc` emit.
 - The numbers describe the migrated codebase. They are not what you would have
   measured before the migration, because before it two of the three compilers refused
   to run.
 
 ## Recommendation
 
-**Do not adopt 6.0.3 for speed** — it is slower. Adopt it for the migration itself:
-it forces the `baseUrl` removal that 7.0 requires anyway, and its stricter defaults
-surfaced a real latent bug (see below). It is the stepping stone, not the destination.
+**Do not adopt 6.0.3 for speed** — there is none to gain; it measures the same as
+5.8.2. Adopt it for the migration itself: it forces the `baseUrl` removal that 7.0
+requires anyway, and its stricter defaults surfaced a real latent bug (see below). It
+is the stepping stone, not the destination.
 
-**7.0.2 is not yet adoptable as this project's build compiler**, purely because
-`nest build` cannot drive it. It is already useful today as a fast pre-commit or CI
-type-check gate, where a 2.5 s check becomes 0.33 s:
+**7.0.2 is the fastest compiler available for this project by a wide margin**, and
+its output is correct. Whether you can adopt it depends entirely on the toolchain
+around it, which is a separate question from the one this benchmark answers.
 
-```bash
-npx tsc -p tsconfig.json --noEmit    # with typescript@7.0.2 installed
+## Toolchain status: what a single 7.0.2 install costs
+
+> **This branch is a measurement configuration, not a production one.** With
+> TypeScript 7.0.2 as the only compiler, `npm run build`, `npm run lint`, `npm test`
+> and every `ts-node` script fail. That is accepted here on purpose: the benchmark
+> needs the compiler measured in isolation, and the surrounding tooling is not part
+> of the question. Do not merge this configuration to `main` until the entries below
+> are resolved.
+
+TypeScript 7 removed the classic compiler API. `require('typescript')` now returns
+just `{ version, versionMajorMinor }`, so every tool that drove the compiler
+programmatically breaks — **18 of this project's 30 npm scripts**:
+
+| Tool                       | Scripts affected                                                                        | Failure                                                                                                                | Tracking                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `@nestjs/cli` 11.0.14      | `build`, `start`, `start:dev`, `start:debug`                                            | `tsBinary.getParsedCommandLineOfConfigFile is not a function`                                                          | [nestjs/nest-cli#3479](https://github.com/nestjs/nest-cli/issues/3479)                         |
+| `typescript-eslint` 8.68.0 | `lint` (and the husky pre-commit hook)                                                  | `typescript-eslint does not support TS 7.0.` — a deliberate `major >= 7` throw                                         | [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940) |
+| `ts-jest` 29.4.12          | `test`, `test:watch`, `test:cov`, `test:e2e`                                            | `The TypeScript compiler "typescript" (version 7.0.2) does not expose the JavaScript compiler API required by ts-jest` | Suggests the `@typescript/typescript6` alias in its own error text                             |
+| `ts-node` / `ts-node-dev`  | `start:local`, `seed`, `db:sync`, `typeorm`, `migration:*`, `schema:sync`, `test:debug` | `TypeError: Cannot read properties of undefined (reading 'fileExists')`                                                | —                                                                                              |
+
+Upgrading does not help: `@nestjs/cli@12.0.0`, the current release, still calls
+`getParsedCommandLineOfConfigFile`. `typescript-eslint` targets TS ≥ 7.1.
+
+`ts-jest` and `typescript-eslint` also declare peer ranges (`<7` and `<6.1.0`) that
+7.0.2 does not satisfy, so the repo carries an `.npmrc` with `legacy-peer-deps=true`
+to keep `npm ci` reproducible.
+
+**When support lands**, drop `.npmrc` and collapse back to a single, working
+`typescript@^7`. Until then, the production-safe alternative is the side-by-side
+layout Microsoft documents in the 7.0 announcement, which this branch used at commit
+`e4079be`:
+
+```json
+{
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "@typescript/native": "npm:typescript@^7.0.2"
+  }
+}
 ```
 
-Revisit the build path when `@nestjs/cli` supports the native compiler API.
+`typescript` stays the package every tool resolves through, so the toolchain keeps
+working on 6.0.3, while `@typescript/native` supplies the 7.0.2 binary for `build`
+and `typecheck`. Measured that way, `npm run build` went from 4419 ms (`nest build`)
+to 547 ms — **8.1×** — with the full test and lint suites still passing.
+
+### Measured on this branch
+
+5 runs after a discarded warm-up, median, end-to-end through npm:
+
+| Command             |     Median |
+| ------------------- | ---------: |
+| `npm run build:tsc` | **554 ms** |
+| `npm run typecheck` | **331 ms** |
+
+`build:tsc` sits above the 333.5 ms raw cold-emit median because it also pays for two
+npm lifecycle spawns (`prebuild:tsc` plus the script itself). Compiler against
+compiler, the ratio is the 8.35× in the results table.
+
+Verified on this configuration: `tsc --version` reports 7.0.2, `build:tsc` emits 141
+files carrying the same 243 `design:type` entries as 5.8.2 and 6.0.3, and `typecheck`
+reports zero errors.
 
 ### Latent bug surfaced by the migration
 
@@ -219,19 +358,34 @@ bash docs/typescript-benchmark/run-benchmark.sh 6.0.3
 bash docs/typescript-benchmark/run-benchmark.sh 7.0.2
 ```
 
-Roughly 7 minutes per version. The harness:
+Roughly 3 minutes per version. The harness:
 
-- Installs each compiler into its own prefix under `.compilers/`, so `tsc` scenarios
-  never touch project dependencies.
-- Swaps `node_modules/typescript` for the `nest build` scenario by **moving
-  directories**, not by running `npm install`. An `npm install --no-package-lock`
-  makes npm ignore the lockfile and re-resolve the whole tree, which silently drifts
-  unrelated packages between versions and destroys comparability.
+- Installs each compiler into its own prefix under `.compilers/` and invokes it by
+  absolute path, so the project's `node_modules`, `package.json` and
+  `package-lock.json` are never touched and all three versions compile a
+  byte-identical dependency tree. Swapping the root compiler via
+  `npm install --no-package-lock` was tried and rejected: it makes npm ignore the
+  lockfile and re-resolve the whole tree, silently drifting unrelated packages
+  between versions and destroying comparability.
+- Measures `tsc` only. The Nest CLI pipeline is out of scope — see "Scope" above.
 - Runs a compatibility gate first and records exit codes with every timing, so a
   compiler that aborts early cannot be mistaken for a fast one. This mattered: 6.0.3
   initially "won" the cold type-check at 1471 ms purely because `TS5101` aborted it
   before type-checking began.
 - Discards a warm-up run, then times 10, reporting the median.
+
+For the [per-branch table](#per-branch-cost-each-branch-as-it-stands), which measures
+each branch as it stands instead of holding the tree constant:
+
+```bash
+bash docs/typescript-benchmark/run-per-branch.sh
+```
+
+Roughly 15 minutes. It requires a clean working tree, checks out each of the three
+branches in turn, runs `npm ci` from that branch's own lockfile, measures with the
+`tsc` that install produces, and returns the checkout to
+`migration/typescript-7.0.2`. It records which branches needed
+`--legacy-peer-deps` rather than hiding that.
 
 Raw output, per-run timings and gate results are in
 `docs/typescript-benchmark/results/`.

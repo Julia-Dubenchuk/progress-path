@@ -4,11 +4,11 @@ Identifiers:     211172
 Symbols:         205028
 Types:            40465
 Instantiations:   62740
-Memory used:    177487K
-Memory allocs:  1399391
+Memory used:    177423K
+Memory allocs:  1398559
 Config time:     0.001s
-Parse time:      0.108s
-Bind time:       0.045s
-Check time:      0.089s
-Emit time:       0.024s
-Total time:      0.308s
+Parse time:      0.113s
+Bind time:       0.019s
+Check time:      0.101s
+Emit time:       0.007s
+Total time:      0.282s
